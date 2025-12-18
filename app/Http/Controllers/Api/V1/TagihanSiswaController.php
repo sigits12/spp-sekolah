@@ -9,6 +9,7 @@ use App\Models\RiwayatKelas;
 use App\Models\TahunAjaran;
 use App\Models\BiayaSekolah;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class TagihanSiswaController extends Controller
@@ -23,6 +24,74 @@ class TagihanSiswaController extends Controller
 
         $tagihan = $query->latest()->paginate(10);
         return response()->json($tagihan);
+    }
+
+    public function getGroupedTagihan(Request $request)
+    {
+        // Kita gunakan paginate(10) untuk menampilkan 10 siswa per halaman
+        $query = Siswa::whereHas('tagihan');
+
+        $query->with([
+            // 'tagihan' => function($q) {
+            //     $q->where('status_bayar', 'BELUM_BAYAR');
+            // },
+            'kelasAktif.kelas' // Nested Eager Loading
+        ]);
+
+        // 2. Eager Load data tagihannya agar tidak terjadi N+1 Query
+        // $query->with(['tagihan' => function($q) {
+        //     $q->where('status_bayar', 'BELUM_BAYAR');
+        // }]);
+
+        if ($request->has('search')) {
+            $query->where('nama', 'ILIKE', '%' . $request->search . '%');
+        }
+
+        $paginatedSiswa = $query->paginate(10);
+
+        $paginatedSiswa->through(function($siswa) {
+
+            $kategoriTersedia = $siswa->tagihan
+            ->pluck('kategori')
+            ->unique()
+            ->values();
+
+            $statusKategori = collect($kategoriTersedia)->map(function($kat) use ($siswa) {
+            $adaTunggakan = $siswa->tagihan
+                ->where('kategori', $kat)
+                ->where('status_bayar', 'BELUM_BAYAR')
+                ->isNotEmpty();
+
+                return [
+                    'nama' => $kat,
+                    'lunas' => !$adaTunggakan // Jika tidak ada tunggakan, berarti lunas
+                ];
+            });
+            
+            $kelasAktif = $siswa->kelasAktif->kelas ?? null;
+            return [
+                'id'              => $siswa->id,
+                'nama'            => $siswa->nama,
+                'tingkat'         => $kelasAktif ? $kelasAktif->tingkat : '-', 
+                'nama_kelas'      => $kelasAktif ? $kelasAktif->nama : '-',
+                // 'total_tunggakan' => $siswa->tagihan->sum('nominal_tagihan'), // Hitung total otomatis
+                // 'daftar_kategori' => $kategoriTersedia,
+                'status_kategori' => $statusKategori,
+                // 'details'         => $siswa->tagihan->map(function($t) {
+                //     return [
+                //         'id'              => $t->id,
+                //         'kategori'        => $t->kategori, // SPP / BUKU
+                //         'bulan_tagihan'   => $t->bulan_tagihan,
+                //         'tahun_tagihan'   => $t->tahun_tagihan,
+                //         'nominal_tagihan' => $t->nominal_tagihan,
+                //         'status_bayar'    => $t->status_bayar,
+                //         'keterangan'      => $t->keterangan,
+                //     ];
+                // }),
+            ];
+        });
+
+        return response()->json($paginatedSiswa);
     }
 
     // 2. POST (Create) - Tambah Tagihan Manual
@@ -93,12 +162,12 @@ class TagihanSiswaController extends Controller
 
 
         $siswaList = Siswa::whereHas('riwayatKelas', function ($q) use ($tingkat, $tahun) {
-            $q->where('id_tahun_ajaran', $tahun)
+            $q->where('tahun_ajaran_id', $tahun)
             ->whereHas('kelas', function ($q) use ($tingkat) {
                 $q->where('tingkat', $tingkat);
             });
         })->get();
-
+        
         // 2. Ambil Master Biaya (Buku & SPP) untuk tahun tersebut
         // Anda mungkin butuh filter tambahan seperti 'tingkat' jika biaya buku berbeda tiap kelas
 
@@ -131,59 +200,48 @@ class TagihanSiswaController extends Controller
 
         foreach ($siswaList as $siswa) {
 
-            /* =========================
-            TAGIHAN BULANAN
-            ========================= */
-
             foreach ($biayaBulanan as $biaya) {
-
-                // Semester Ganjil
                 foreach ($bulanGanjil as $bulan) {
                     $dataInsert[] = [
-                        'id_siswa'        => $siswa->id_siswa,
+                        'siswa_id'        => $siswa->id,
                         'biaya_sekolah_id'        => $biaya->id,
                         'kategori'        => $biaya->kategori,
-                        'nominal'         => $biaya->nominal,
+                        'nominal_tagihan'         => $biaya->nominal,
                         'bulan_tagihan'   => $bulan,
                         'tahun_tagihan'   => $tahunGanjil,
                         'tahun_ajaran_id' => $tahunAjaran->id,
-                        'status'          => 'BELUM_BAYAR',
+                        'status_bayar'          => 'BELUM_BAYAR',
                         'created_at'      => now(),
                         'updated_at'      => now(),
                     ];
                 }
 
-                // Semester Genap
                 foreach ($bulanGenap as $bulan) {
                     $dataInsert[] = [
-                        'id_siswa'        => $siswa->id_siswa,
+                        'siswa_id'        => $siswa->id,
                         'biaya_sekolah_id'        => $biaya->id,
                         'kategori'        => $biaya->kategori,
-                        'nominal'         => $biaya->nominal,
+                        'nominal_tagihan'         => $biaya->nominal,
                         'bulan_tagihan'   => $bulan,
                         'tahun_tagihan'   => $tahunGenap,
                         'tahun_ajaran_id' => $tahunAjaran->id,
-                        'status'          => 'BELUM_BAYAR',
+                        'status_bayar'          => 'BELUM_BAYAR',
                         'created_at'      => now(),
                         'updated_at'      => now(),
                     ];
                 }
             }
 
-            /* =========================
-            TAGIHAN SEKALI
-            ========================= */
-
             foreach ($biayaSekali as $biaya) {
                 $dataInsert[] = [
-                    'id_siswa'        => $siswa->id_siswa,
+                    'siswa_id'        => $siswa->id,
                     'biaya_sekolah_id'        => $biaya->id,
                     'kategori'        => $biaya->kategori,
-                    'nominal'         => $biaya->nominal,
+                    'nominal_tagihan'         => $biaya->nominal,
                     'bulan_tagihan'   => null,
                     'tahun_tagihan'   => $tahunGanjil,
                     'tahun_ajaran_id' => $tahunAjaran->id,
-                    'status'          => 'BELUM_BAYAR',
+                    'status_bayar'          => 'BELUM_BAYAR',
                     'created_at'      => now(),
                     'updated_at'      => now(),
                 ];
@@ -191,7 +249,9 @@ class TagihanSiswaController extends Controller
         }
 
         // 3. Simpan sekaligus (Mass Insert)
-        TagihanSiswa::insert($dataInsert);
+        DB::transaction(function () use ($dataInsert) {
+            DB::table('tagihan_siswa')->insert($dataInsert);
+        });
 
         return response()->json(['message' => 'Tagihan SPP dan Buku berhasil diterbitkan']);
     }

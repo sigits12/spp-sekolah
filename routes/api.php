@@ -8,6 +8,7 @@ Route::prefix('v1')->group(function () {
     Route::prefix('keuangan')->group(function () {
         Route::get('/biaya-sekolah', [BiayaSekolahController::class, 'index']);
         Route::apiResource('tagihan', TagihanSiswaController::class);
+        Route::get('/tagihan-siswa', [TagihanSiswaController::class, 'getGroupedTagihan']);
         Route::get('/generate-tagihan-siswa', [TagihanSiswaController::class, 'generateTagihan']);
     });
 });

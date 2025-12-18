@@ -14,7 +14,7 @@ class DashboardController extends Controller
 {
     public function index() {
         $jumlahKelas = Kelas::count();
-        $jumlahSiswa = RiwayatKelas::tahunAktif()->distinct()->count('id_siswa');
+        $jumlahSiswa = RiwayatKelas::tahunAktif()->distinct()->count('siswa_id');
         $totalBiaya = BiayaSekolah::count();
         $tahunAktif = TahunAjaran::where('is_aktif', true)->first();
 
