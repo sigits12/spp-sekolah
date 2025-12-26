@@ -14,7 +14,8 @@ const routes = [
         component: Dashboard
     },
     { path: '/biaya-sekolah', component: () => import('../views/BiayaSekolah.vue') },
-    { path: '/tagihan', component: () => import('../views/TagihanSiswa.vue') }
+    { path: '/tagihan', component: () => import('../views/TagihanSiswa.vue') },
+    { path: '/pembayaran', name: 'pembayaran', component: () => import('../views/PembayaranSiswa.vue') }
 ];
 
 const router = createRouter({

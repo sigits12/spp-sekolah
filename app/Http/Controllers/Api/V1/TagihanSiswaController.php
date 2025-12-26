@@ -71,6 +71,7 @@ class TagihanSiswaController extends Controller
             $kelasAktif = $siswa->kelasAktif->kelas ?? null;
             return [
                 'id'              => $siswa->id,
+                'tagihan_id'      => $siswa->id,
                 'nama'            => $siswa->nama,
                 'tingkat'         => $kelasAktif ? $kelasAktif->tingkat : '-', 
                 'nama_kelas'      => $kelasAktif ? $kelasAktif->nama : '-',
