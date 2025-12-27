@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class RiwayatKelas extends Model
 {
     protected $table = "riwayat_kelas";
+    protected $fillable = [
+        'siswa_id', 
+        'kelas_id', 
+        'tahun_ajaran_id'
+    ];
 
     public function tahunAjaran()
     {

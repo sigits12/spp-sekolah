@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\BiayaSekolahController;
 use App\Http\Controllers\Api\V1\TagihanSiswaController;
 use App\Http\Controllers\Api\V1\PembayaranController;
+use App\Http\Controllers\Api\V1\SiswaController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -15,4 +16,6 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('pembayaran', PembayaranController::class);
 
     });
+
+    Route::get('/siswa/search', [SiswaController::class, 'search']);
 });
