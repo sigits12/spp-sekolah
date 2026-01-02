@@ -26,7 +26,8 @@ class SiswaController extends Controller
             return [
                 'id' => $item->id,
                 'nama' => $item->nama,
-                'kelas' => $item->kelasAktif ? $item->kelasAktif->kelas->nama : null
+                'kelas' => $item->kelasAktif ? $item->kelasAktif->kelas->nama : null,
+                'kelas_aktif_id' => $item->kelasAktif ? $item->kelasAktif->kelas->id : null,
             ];
         });
 

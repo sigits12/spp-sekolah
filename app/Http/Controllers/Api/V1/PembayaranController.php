@@ -3,33 +3,78 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Siswa;
 use App\Models\TagihanSiswa;
 use App\Models\Pembayaran;
+use App\Models\PembayaranDetail;
+use App\Models\BiayaSekolah;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PembayaranController extends Controller
 {
+
+    public function autofill($siswaId)
+    {
+        $bulanan = TagihanSiswa::query()
+            ->where('siswa_id', $siswaId)
+            ->whereHas('biayaSekolah', fn ($q) =>
+                $q->where('tipe_tagihan', 'BULANAN')
+            )
+            ->where('status_bayar', 'BELUM_BAYAR')
+            ->get();
+
+        $bulananGrouped = $bulanan->groupBy('biaya_sekolah_id');
+
+        $bulananResult = $bulananGrouped->map(function ($items) {
+        return [
+            'biaya_sekolah_id' => $items->first()->biaya_sekolah_id,
+            'kategori' => $items->first()->biayaSekolah->kategori,
+            'nominal_tagihan' => $items->first()->nominal_tagihan,
+            'outstanding' => $items->count(),
+            'periode' => $items->map(fn ($i) => [
+                'bulan' => $i->bulan_tagihan,
+                'tahun' => $i->tahun_tagihan
+            ])->values()
+        ];
+        })->values();
+
+        $nonBulanan = TagihanSiswa::query()
+            ->where('siswa_id', $siswaId)
+            ->whereHas('biayaSekolah', fn ($q) =>
+                $q->where('tipe_tagihan', 'SEKALI')
+            )
+            ->where('sisa_pembayaran', '>', 0)
+            ->get();
+
+        $nonBulananResult = $nonBulanan->map(function ($item) {
+            return [
+                'biaya_sekolah_id' => $item->biaya_sekolah_id,
+                'kategori' => $item->biayaSekolah->kategori,
+                'remaining' => $item->sisa_pembayaran
+            ];
+        });
+
+        return response()->json([
+            'bulanan' => $bulananResult,
+            'non_bulanan' => $nonBulananResult
+        ]);
+    }
+
     /**
      * List pembayaran (untuk menu Pembayaran)
      */
     public function index(Request $request)
     {
         $query = Pembayaran::with([
-            'tagihan:id,siswa_id,status_bayar,biaya_sekolah_id,kategori,bulan_tagihan,tahun_tagihan',
-            'tagihan.siswa:id,nama',
-            'tagihan.biayaSekolah'
-        ])->orderByDesc('tanggal_bayar');
-
-        // filter tanggal
-        if ($request->filled('tanggal')) {
-            $query->whereDate('tanggal_bayar', $request->tanggal);
-        }
-
-        // filter metode
-        if ($request->filled('metode')) {
-            $query->where('metode', $request->metode);
-        }
+                'siswa:id,nama',
+                'siswa.kelasAktif:id,kelas_id',
+                'siswa.riwayatKelas.kelas:id,nama',
+                'pembayaranDetail',
+            ])
+            ->withSum('pembayaranDetail as total_bayar', 'jumlah_bayar') 
+            ->orderByDesc('tanggal_bayar');
 
         return response()->json(
             $query->paginate(20)
@@ -39,51 +84,133 @@ class PembayaranController extends Controller
     /**
      * Simpan pembayaran baru
      */
-    public function store(Request $request)
+    public function store(Request $r)
     {
-        $request->validate([
-            'id_tagihan'   => 'required|exists:tagihan_siswa,id_tagihan',
-            'jumlah_bayar' => 'required|numeric|min:1',
-            'metode'       => 'required|in:tunai,transfer,qris',
-            'keterangan'   => 'nullable|string'
+        $r->validate([
+            'siswa_id'   => 'required|exists:siswa,id',
+            'total_bayar' => 'required|numeric|min:1',
+            // 'metode'       => 'required|in:tunai,transfer,qris',
         ]);
 
-        DB::transaction(function () use ($request) {
+        $r->metode = 'tunai';
 
-            $tagihan = TagihanSiswa::lockForUpdate()
-                ->findOrFail($request->id_tagihan);
+        DB::transaction(function () use ($r) {
 
-            // total pembayaran sebelumnya
-            $totalBayar = Pembayaran::where('id_tagihan', $tagihan->id_tagihan)
-                ->sum('jumlah_bayar');
+            $totalAkumulasi = 0;
 
-            $sisa = $tagihan->nominal - $totalBayar;
+            foreach ($r->pembayaran['bulanan'] as $item) {
 
-            if ($request->jumlah_bayar > $sisa) {
-                abort(422, 'Jumlah bayar melebihi sisa tagihan');
+                $tagihanBulanan  = TagihanSiswa::where([
+                    'siswa_id'        => $r->siswa_id,
+                    'kelas_aktif_id'  => $r->kelas_aktif_id,
+                    'biaya_sekolah_id'=> $item['biaya_sekolah_id'],
+                ])
+                ->where('sisa_pembayaran', '>', 0)
+                ->whereNotNull('bulan_tagihan')
+                ->whereNotNull('tahun_tagihan')
+                ->orderBy('tahun_tagihan')
+                ->orderBy('bulan_tagihan')
+                ->lockForUpdate()
+                ->get();
+
+
+                $jumlahBulan = $item['jumlah_bulan'];
+                
+                foreach ($tagihanBulanan as $tagihan) {
+
+                    if ($jumlahBulan <= 0) break;
+
+                    $sudahDibayar = PembayaranDetail::where('tagihan_siswa_id', $tagihan->id)
+                        ->sum('jumlah_bayar');
+                        
+                    $sisa = $tagihan->nominal_tagihan - $sudahDibayar;
+                    if ($sisa <= 0) continue;
+
+                    // 2. Create pembayaran
+                    $pembayaran = Pembayaran::create([
+                        'siswa_id'       => $r->siswa_id,
+                        'kelas_aktif_id' => $r->kelas_aktif_id,
+                        'tanggal_bayar'  => now(),
+                        'metode'         => $r->metode,
+                        'total_bayar'    => $sisa,
+                    ]);
+
+                    // 3. Detail
+                    PembayaranDetail::create([
+                        'pembayaran_id'     => $pembayaran->id,
+                        'tagihan_siswa_id'  => $tagihan->id,
+                        'jumlah_bayar'      => $sisa,
+                    ]);
+
+                    $sisaBaru = $tagihan->sisa_pembayaran - $sisa;
+
+                    // 4. Update status tagihan
+                    $tagihan->update([
+                    'status_bayar' => $sisaBaru < 0 ? 'LUNAS' : 'SEBAGIAN',
+                    'sisa_pembayaran' => $sisaBaru
+                ]);
+
+                    $jumlahBulan--;
+                    $totalAkumulasi += $sisa;
+                }
             }
 
-            // simpan pembayaran
-            Pembayaran::create([
-                'id_tagihan'   => $tagihan->id_tagihan,
-                'tanggal_bayar'=> now()->toDateString(),
-                'jumlah_bayar' => $request->jumlah_bayar,
-                'metode'       => $request->metode,
-                'keterangan'   => $request->keterangan,
-                'user_id'      => auth()->id()
-            ]);
+            /* ===============================
+            TAGIHAN NON BULANAN
+            =============================== */
 
-            // update status tagihan
-            $totalSetelahBayar = $totalBayar + $request->jumlah_bayar;
+            foreach ($r->pembayaran['non_bulanan'] as $item) {
 
-            if ($totalSetelahBayar == $tagihan->nominal) {
-                $tagihan->status = 'lunas';
-            } elseif ($totalSetelahBayar > 0) {
-                $tagihan->status = 'sebagian';
+                $sisaBayar = $item['nominal'];
+
+                $tagihan = TagihanSiswa::where([
+                            'siswa_id'        => $r->siswa_id,
+                            'kelas_aktif_id'  => $r->kelas_aktif_id,
+                            'biaya_sekolah_id'=> $item['biaya_sekolah_id'],
+                        ])
+                        ->where('sisa_pembayaran', '>', 0)
+                        ->whereIn('status_bayar', ['BELUM_BAYAR', 'SEBAGIAN'])
+                        ->whereNull('bulan_tagihan')
+                        ->lockForUpdate()
+                        ->firstOrFail();
+                
+                $sudahDibayar = PembayaranDetail::where('tagihan_siswa_id', $tagihan->id)
+                    ->sum('jumlah_bayar');
+                
+                $dibayar = min($sisaBayar, $tagihan->sisa_pembayaran);
+
+                if ($sisaBayar <= 0) continue;
+
+                $pembayaran = Pembayaran::create([
+                    'siswa_id'       => $r->siswa_id,
+                    'kelas_aktif_id' => $r->kelas_aktif_id,
+                    'tanggal'        => now(),
+                    'metode'         => $r->metode,
+                    'total_bayar'    => $dibayar,
+                ]);
+
+                $pembayaranDetail = PembayaranDetail::create([
+                    'pembayaran_id'     => $pembayaran->id,
+                    'tagihan_siswa_id'  => $tagihan->id,
+                    'jumlah_bayar'      => $dibayar,
+                ]);
+
+                $sisaBaru = $tagihan->sisa_pembayaran - $dibayar;
+                $tagihan->update([
+                    'status_bayar' => $tagihan->sisa_pembayaran == 0 ? 'LUNAS' : 'SEBAGIAN',
+                    'sisa_pembayaran' => $sisaBaru
+                ]);
+
+                $totalAkumulasi += $dibayar;
             }
-
-            $tagihan->save();
+            /* ===============================
+            VALIDASI TOTAL
+            =============================== */
+            if ($totalAkumulasi != $r->total_bayar) {
+                throw new \Exception('Total pembayaran tidak sesuai detail');
+            }
         });
+
 
         return response()->json([
             'message' => 'Pembayaran berhasil disimpan'

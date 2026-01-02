@@ -24,7 +24,11 @@
   <input
     v-model="search"
     :readonly="!!selectedSiswa"
+    @input="onSearch"
     @focus="!selectedSiswa && (showDropdownSiswa = true)"
+    @keydown.down.prevent="moveDown"
+    @keydown.up.prevent="moveUp"
+    @keydown.enter.prevent="selectActive"
     class="w-full px-4 py-3 pr-10 rounded-xl bg-slate-50 border focus:border-indigo-500 outline-none"
     placeholder="Ketik nama siswa..."
   />
@@ -38,16 +42,19 @@
       ✕
     </button>
 
-  <!-- Dropdown -->
   <div
     v-if="showDropdownSiswa && siswaOptions.length && !selectedSiswa"
     class="absolute z-50 w-full mt-1 bg-white border rounded-xl shadow-lg max-h-60 overflow-auto"
   >
     <div
-      v-for="siswa in siswaOptions"
+      v-for="(siswa, index) in siswaOptions"
       :key="siswa.id"
       @click="selectSiswa(siswa)"
-      class="px-4 py-3 hover:bg-indigo-50 cursor-pointer"
+      :class="['px-4 py-3 hover:bg-indigo-50 cursor-pointer',
+        index === activeIndex
+          ? 'bg-indigo-600 text-white'
+          : 'hover:bg-indigo-50'
+      ]"
     >
       <p class="font-medium text-slate-700">
         {{ siswa.nama }}
@@ -68,7 +75,7 @@
 
         <div>
           <label class="text-xs font-bold text-slate-600 uppercase">Metode</label>
-          <select v-model="form.method"
+          <select v-model="form.metode"
             class="w-full mt-1 px-4 py-3 rounded-xl bg-slate-50 border outline-none">
             <option value="tunai">Tunai</option>
             <option value="transfer">Transfer</option>
@@ -79,16 +86,17 @@
 
       <div class="rounded-xl border p-4">
         <h3 class="font-semibold text-slate-800 mb-4 flex items-center">📆 Pembayaran Bulanan</h3>
-
+      <!-- <pre>{{ JSON.stringify(monthlyItems, null, 2) }}</pre> -->
         <div class="grid gap-3">
-          <div v-for="item in monthlyItems" :key="item.id" class="flex items-center bg-white border border-slate-200 rounded-2xl p-2 shadow-sm">
+          
+          <div v-for="item in monthlyItems" :key="item.biaya_sekolah_id" class="flex items-center bg-white border border-slate-200 rounded-2xl p-2 shadow-sm">
               
             <div class="flex items-center gap-3 flex-1 min-w-0">
-              <div class="h-10 w-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 font-bold italic shrink-0 text-lg">{{ item.name[0] }}</div>
+              <div class="h-10 w-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 font-bold italic shrink-0 text-lg">{{ item.kategori[0] }}</div>
               <div class="min-w-0">
-                  <p class="font-bold text-slate-700 truncate text-sm">{{ item.name }}</p>
+                  <p class="font-bold text-slate-700 truncate text-sm">{{ item.kategori }}</p>
                   <p class="text-[10px] text-slate-500 whitespace-nowrap">
-                    {{ format(item.price) }} / bln • Sisa : <span class="text-red-600 font-bold text-[9px]">{{ item.unpaidMonths }} BLN</span>
+                    {{ format(item.nominal_tagihan) }} / bln • Sisa : <span class="text-red-600 font-bold text-[9px]">{{ item.outstanding }} BLN</span>
                   </p>
                 </div>
               </div>
@@ -98,19 +106,19 @@
                   <input 
                     type="number" 
                     min="0" 
-                    :max="item.unpaidMonths"
+                    :max="item.outstanding"
                     v-model.number="item.payMonths"
                     class="w-12 bg-transparent text-center font-bold text-indigo-600 outline-none text-lg" 
                     value="0"
                   />
-                  <span class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Bln</span>
+                  <span class="text-[9px] font-bold text-gray-400 tracking-tighter">BLN</span>
                 </div>
 
                 <div class="h-6 w-px bg-slate-200 shrink-0"></div>
 
                 <div class="text-right min-w-[160px]">
                   <p class="text-lg font-black font-bold text-slate-800 tracking-tight">
-                    {{ format(item.payMonths * item.price) }}
+                    {{ format(item.payMonths * item.nominal_tagihan) }}
                   </p>
                 </div>
               </div>
@@ -131,10 +139,10 @@
 
         <div class="px-6 pb-6 space-y-3 border-t border-gray-100 pt-4 bg-gray-50">
 
-          <div v-for="item in nonMonthlyItems" :key="item.id" class="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-2">
+          <div v-for="item in otherItems" :key="item.biaya_sekolah_id" class="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-2">
             <div class="flex items-center gap-4">
-              <div class="h-10 w-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 font-bold italic">{{ item.name[0] }}</div>
-                <p class="font-bold text-slate-700">{{ item.name }}</p>
+              <div class="h-10 w-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 font-bold italic">{{ item.kategori[0] }}</div>
+                <p class="font-bold text-slate-700">{{ item.kategori }}</p>
                 <p class="text-xs text-slate-500">
                   Sisa : 
                   <span class="text-red-600 font-semibold"> 
@@ -147,13 +155,6 @@
                 v-model="item.amount"
                 :max="item.remaining"
               />
-              <!-- <span class="absolute left-3 top-2 font-bold text-slate-700">Rp</span> -->
-              <!-- <input 
-                type="text" 
-                v-model="item.amount"
-                class="text-right pl-10 w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700 text-lg"
-                placeholder="0"
-              /> -->
             </div>
           </div>
         
@@ -166,9 +167,9 @@
           <p class="text-xl font-bold">{{ format(totalAllocated) }}</p>
         </div>
 
+          <!-- :disabled="totalAllocated !== form.total" -->
         <button
           type="submit"
-          :disabled="totalAllocated !== form.total"
           class="bg-white text-indigo-600 font-bold px-6 py-3 rounded-xl disabled:opacity-50">
           Simpan Pembayaran
         </button>
@@ -176,7 +177,6 @@
 
     </form>
   </div>
-
 
   <div class="mt-8 mb-6">
     <div class="flex items-center justify-between">
@@ -198,7 +198,6 @@
           <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Aksi</th>
         </tr>
       </thead>
-      <!-- <pre>{{ JSON.stringify(recentPayments, null, 2) }}</pre> -->
       <tbody class="divide-y divide-gray-100">
         <tr v-for="p in recentPayments" :key="p.id" class="border-t border-gray-700">
           <td class="px-4 py-3">{{ p.tanggal_bayar }}</td>
@@ -250,21 +249,15 @@ const recentPayments = ref([])
 const bulanSekarang = ref('Desember')
 const tahunSekarang = ref('2025')
 const loading = ref(false)
+const loadingTagihan = ref(false)
 const siswaOptions = ref([]);
 const selectedSiswa = ref(null);
 const showDropdownSiswa = ref(false);
+const monthlyItems = ref([])
+const otherItems = ref([])
+const activeIndex = ref(-1) 
+
 let searchTimer = null;
-
-const users = ref([
-  { id: 1, name: 'Alice', role: '' },
-  { id: 2, name: 'Bob', role: '' },
-  { id: 3, name: 'Charlie', role: '' }
-]);
-
-const submitData = () => {
-  // Access all values directly from the reactive array
-  console.log('Submitted Data:', nonMonthlyItems.value);
-};
 
 const showNonMonthly = ref(false)
 
@@ -275,43 +268,30 @@ const form = ref({
   metode: ''
 })
 
-const monthlyItems = ref([
-  { id: 1, name: 'SPP', price: 150000, unpaidMonths: 2, payMonths: 0 },
-  { id: 2, name: 'Ekskul', price: 20000, unpaidMonths: 1, payMonths: 0 },
-  { id: 2, name: 'Komite', price: 5000, unpaidMonths: 1, payMonths: 0 },
-])
+const initialForm = {
+  siswa_id: null,
+  kelas_id: null,
+  nama_siswa: '',
+  tanggal: '',
+  nominal: 0,
+  metode: '',
+}
 
-// 1. Data asli dalam bentuk angka murni
-const rawValue = ref(0);
-
-// 2. Computed property untuk memformat tampilan
-const cicilan = computed({
-  get() {
-    // Mengubah angka 500000 -> "500.000"
-    return rawValue.value.toLocaleString('id-ID');
-  },
-  set(newValue) {
-    // Mengambil input string, hapus semua karakter non-angka
-    // "500.000" -> "500000" -> 500000
-    const number = Number(newValue.replace(/[^0-9]/g, ''));
-    rawValue.value = number;
-  }
-});
-
-const nonMonthlyItems = ref([
-  { id: 3, name: 'Buku', remaining: 200000, amount: 0 },
-  { id: 4, name: 'Seragam', remaining: 150000, amount: 0 }
-])
-
-// 2. Computed Properties
 const totalAllocated = computed(() => {
-  const monthlyTotal = monthlyItems.value.reduce(
-    (sum, i) => sum + (i.payMonths * i.price), 0
-  )
 
-  const nonMonthlyTotal = nonMonthlyItems.value.reduce(
-    (sum, i) => i.selected ? sum + i.amount : sum, 0
-  )
+  // 1. Hitung total monthly (pastikan ada isinya)
+  const monthlyTotal = (monthlyItems.value || []).reduce((sum, item) => {
+    const qty = item.payMonths || 0;
+    const nominal = item.nominal_tagihan || 0;
+    return sum + (qty * nominal);
+  }, 0);
+
+  // 2. Hitung total non-monthly (pastikan ada isinya)
+  const nonMonthlyTotal = (otherItems.value || []).reduce((sum, item) => {
+    // Hanya jumlahkan jika item dipilih (selected)
+    return sum + (item.amount || 0);
+  }, 0);
+
 
   return monthlyTotal + nonMonthlyTotal
 })
@@ -323,15 +303,6 @@ const format = (value) => {
     currency: 'IDR',
     maximumFractionDigits: 0
   }).format(value)
-}
-
-const submitPayment = () => {
-  alert('Pembayaran siap disimpan (logic backend menyusul)')
-  console.log('Data yang dikirim:', { 
-    form, 
-    monthly: monthlyItems.value, 
-    nonMonthly: nonMonthlyItems.value 
-  })
 }
 
 const fetchSiswa = async () => {
@@ -350,29 +321,24 @@ const fetchSiswa = async () => {
   }
 };
 
-watch(search, (newValue) => {
-  // 1. Hapus timer sebelumnya setiap kali user mengetik karakter baru
+const onSearch = () => {
   if (searchTimer) clearTimeout(searchTimer);
+  if (search.value.length < 2) return;
 
-  // Validasi minimal karakter agar tidak membebani API
-  if (newValue.length < 2) {
-    siswaOptions.value = [];
-    return;
-  }
-
-  // 2. Setel ulang timer baru (Debounce)
   searchTimer = setTimeout(() => {
-    fetchSiswa(); // Panggil API setelah 500ms berhenti mengetik
+    fetchSiswa();
   }, 500);
-});
+};
 
-const selectSiswa = (siswa) => {
+const selectSiswa = async (siswa) => {
   selectedSiswa.value = siswa;
   search.value = `${siswa.nama} — Kelas ${siswa.kelas}`
   showDropdownSiswa.value = false;
-
+  activeIndex.value = -1
   // Simpan ke form
   form.value.siswa_id = siswa.id;
+  form.value.kelas_aktif_id = siswa.kelas_aktif_id;
+  await fetchTagihanSiswa()
 };
 
 const clearSiswa = () => {
@@ -380,9 +346,36 @@ const clearSiswa = () => {
   search.value = '';
   form.value.siswa_id = null;
   siswaOptions.value = [];
-  search.value = siswa.nama;
   showDropdownSiswa.value = false
+  monthlyItems.value = []
+  otherItems.value = []
+
 };
+
+const fetchTagihanSiswa = async () => {
+  loadingTagihan.value = true
+  try {
+    const res = await fetch(
+      `/api/v1/keuangan/pembayaran/autofill/${form.value.siswa_id}`
+    )
+    const json = await res.json()
+    monthlyItems.value = (json.bulanan || []).map(item => ({
+      ...item,
+      payMonths: 0 // ← input user, frontend only
+    }))
+    otherItems.value = (json.non_bulanan || []).map(item => ({
+      ...item,
+      amount: 0 // ← input user
+    }))
+    
+  } catch (e) {
+    console.error(e)
+    monthlyItems.value = []
+    otherItems.value = []
+  } finally {
+    loadingTagihan.value = false
+  }
+}
 
 const fetchData = async (url = '/api/v1/keuangan/pembayaran?page=1') => {
   loading.value = true
@@ -411,6 +404,25 @@ const namaBulan = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ]
 
+const moveDown = () => {
+  if (!showDropdownSiswa.value) return
+  if (activeIndex.value < siswaOptions.value.length - 1) {
+    activeIndex.value++
+  }
+}
+
+const moveUp = () => {
+  if (!showDropdownSiswa.value) return
+  if (activeIndex.value > 0) {
+    activeIndex.value--
+  }
+}
+
+const selectActive = () => {
+  if (activeIndex.value >= 0) {
+    selectSiswa(siswaOptions.value[activeIndex.value])
+  }
+}
 
 const formatPeriode = (payment) => {
   // pastikan hanya SPP
@@ -425,6 +437,46 @@ const formatPeriode = (payment) => {
   return `${namaBulan[payment.bulan_tagihan]} ${payment.tahun_tagihan}`
 }
 
+const submitPayment = async () => {
+  loading.value = true
+  try {
+    await axios.post('/api/v1/keuangan/pembayaran', buildPayload())
+    alert('Pembayaran berhasil disimpan')
+  } catch (error) {
+    console.error("Gagal mengambil data pembayaran:", error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const buildPayload = () => {
+  const bulananPayload = monthlyItems.value
+    .filter(i => i.payMonths > 0)
+    .map(i => ({
+      biaya_sekolah_id: i.biaya_sekolah_id,
+      jumlah_bulan: i.payMonths
+  }))
+
+  const nonBulananPayload = otherItems.value
+    .filter(i => i.amount > 0)
+    .map(i => ({
+      biaya_sekolah_id: i.biaya_sekolah_id,
+      nominal: i.amount
+  }))
+
+  const payload = {
+    siswa_id: form.value.siswa_id,
+    kelas_aktif_id: form.value.kelas_aktif_id,
+    metode: form.value.metode,
+    total_bayar: totalAllocated.value,
+    pembayaran: {
+      bulanan: bulananPayload,
+      non_bulanan: nonBulananPayload
+    }
+  }
+
+  return payload
+}
 
 const pagination = ref({
   current_page: 1,

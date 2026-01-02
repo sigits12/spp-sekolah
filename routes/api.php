@@ -14,6 +14,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/generate-tagihan-siswa', [TagihanSiswaController::class, 'generateTagihan']);
 
         Route::apiResource('pembayaran', PembayaranController::class);
+        Route::get('/pembayaran/autofill/{siswa_id}', [PembayaranController::class, 'autofill']);
+
 
     });
 
