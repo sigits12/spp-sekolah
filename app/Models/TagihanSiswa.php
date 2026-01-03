@@ -17,7 +17,6 @@ class TagihanSiswa extends Model
         'siswa_id',
         'biaya_sekolah_id',
         'nominal_tagihan',
-        'status_bayar',
         'kategori',
         'bulan_tagihan',
         'tahun_tagihan',

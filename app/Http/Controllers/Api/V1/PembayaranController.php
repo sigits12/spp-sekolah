@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PembayaranSiswaCollection;
 use App\Models\Siswa;
 use App\Models\TagihanSiswa;
 use App\Models\Pembayaran;
@@ -22,7 +23,7 @@ class PembayaranController extends Controller
             ->whereHas('biayaSekolah', fn ($q) =>
                 $q->where('tipe_tagihan', 'BULANAN')
             )
-            ->where('status_bayar', 'BELUM_BAYAR')
+            ->where('sisa_pembayaran', '>', 0)
             ->get();
 
         $bulananGrouped = $bulanan->groupBy('biaya_sekolah_id');
@@ -69,18 +70,16 @@ class PembayaranController extends Controller
     {
         $query = Pembayaran::with([
                 'siswa:id,nama',
-                'siswa.kelasAktif:id,kelas_id',
-                'siswa.riwayatKelas.kelas:id,nama',
+                'siswa.kelasAktif.kelas',
                 'pembayaranDetail',
             ])
+            ->select('id', 'tanggal_bayar', 'siswa_id', 'kelas_aktif_id', 'metode')
             ->withSum('pembayaranDetail as total_bayar', 'jumlah_bayar') 
-            ->orderByDesc('tanggal_bayar');
-
-        return response()->json(
-            $query->paginate(20)
-        );
+            ->orderByDesc('tanggal_bayar')
+            ->paginate(10);
+    
+        return new PembayaranSiswaCollection($query);
     }
-
     /**
      * Simpan pembayaran baru
      */
@@ -95,6 +94,14 @@ class PembayaranController extends Controller
         $r->metode = 'tunai';
 
         DB::transaction(function () use ($r) {
+
+            $pembayaran = Pembayaran::create([
+                    'siswa_id'       => $r->siswa_id,
+                    'kelas_aktif_id' => $r->kelas_aktif_id,
+                    'tanggal_bayar'  => now(),
+                    'metode'         => $r->metode,
+                    'total_bayar'    => 0, // sementara
+                ]);
 
             $totalAkumulasi = 0;
 
@@ -118,24 +125,12 @@ class PembayaranController extends Controller
                 
                 foreach ($tagihanBulanan as $tagihan) {
 
-                    if ($jumlahBulan <= 0) break;
-
                     $sudahDibayar = PembayaranDetail::where('tagihan_siswa_id', $tagihan->id)
                         ->sum('jumlah_bayar');
                         
                     $sisa = $tagihan->nominal_tagihan - $sudahDibayar;
                     if ($sisa <= 0) continue;
 
-                    // 2. Create pembayaran
-                    $pembayaran = Pembayaran::create([
-                        'siswa_id'       => $r->siswa_id,
-                        'kelas_aktif_id' => $r->kelas_aktif_id,
-                        'tanggal_bayar'  => now(),
-                        'metode'         => $r->metode,
-                        'total_bayar'    => $sisa,
-                    ]);
-
-                    // 3. Detail
                     PembayaranDetail::create([
                         'pembayaran_id'     => $pembayaran->id,
                         'tagihan_siswa_id'  => $tagihan->id,
@@ -144,9 +139,7 @@ class PembayaranController extends Controller
 
                     $sisaBaru = $tagihan->sisa_pembayaran - $sisa;
 
-                    // 4. Update status tagihan
                     $tagihan->update([
-                    'status_bayar' => $sisaBaru < 0 ? 'LUNAS' : 'SEBAGIAN',
                     'sisa_pembayaran' => $sisaBaru
                 ]);
 
@@ -169,7 +162,6 @@ class PembayaranController extends Controller
                             'biaya_sekolah_id'=> $item['biaya_sekolah_id'],
                         ])
                         ->where('sisa_pembayaran', '>', 0)
-                        ->whereIn('status_bayar', ['BELUM_BAYAR', 'SEBAGIAN'])
                         ->whereNull('bulan_tagihan')
                         ->lockForUpdate()
                         ->firstOrFail();
@@ -181,14 +173,6 @@ class PembayaranController extends Controller
 
                 if ($sisaBayar <= 0) continue;
 
-                $pembayaran = Pembayaran::create([
-                    'siswa_id'       => $r->siswa_id,
-                    'kelas_aktif_id' => $r->kelas_aktif_id,
-                    'tanggal'        => now(),
-                    'metode'         => $r->metode,
-                    'total_bayar'    => $dibayar,
-                ]);
-
                 $pembayaranDetail = PembayaranDetail::create([
                     'pembayaran_id'     => $pembayaran->id,
                     'tagihan_siswa_id'  => $tagihan->id,
@@ -197,12 +181,16 @@ class PembayaranController extends Controller
 
                 $sisaBaru = $tagihan->sisa_pembayaran - $dibayar;
                 $tagihan->update([
-                    'status_bayar' => $tagihan->sisa_pembayaran == 0 ? 'LUNAS' : 'SEBAGIAN',
                     'sisa_pembayaran' => $sisaBaru
                 ]);
 
                 $totalAkumulasi += $dibayar;
             }
+
+            $pembayaran->update([
+                'total_bayar' => $totalAkumulasi,
+            ]);
+
             /* ===============================
             VALIDASI TOTAL
             =============================== */

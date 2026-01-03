@@ -57,14 +57,14 @@ class TagihanSiswaController extends Controller
             ->values();
 
             $statusKategori = collect($kategoriTersedia)->map(function($kat) use ($siswa) {
-            $adaTunggakan = $siswa->tagihan
+            $itemLunas = $siswa->tagihan
                 ->where('kategori', $kat)
-                ->where('status_bayar', 'BELUM_BAYAR')
+                ->where('sisa_pembayaran', '=', 0)
                 ->isNotEmpty();
 
                 return [
                     'nama' => $kat,
-                    'lunas' => !$adaTunggakan // Jika tidak ada tunggakan, berarti lunas
+                    'lunas' => $itemLunas // Jika tidak ada tunggakan, berarti lunas
                 ];
             });
             
@@ -131,7 +131,6 @@ class TagihanSiswaController extends Controller
 
         $tagihan->update($request->only([
             'nominal_tagihan', 
-            'status_bayar', 
             'keterangan'
         ]));
 
@@ -205,13 +204,13 @@ class TagihanSiswaController extends Controller
                 foreach ($bulanGanjil as $bulan) {
                     $dataInsert[] = [
                         'siswa_id'        => $siswa->id,
-                        'biaya_sekolah_id'        => $biaya->id,
+                        'biaya_sekolah_id'=> $biaya->id,
                         'kategori'        => $biaya->kategori,
-                        'nominal_tagihan'         => $biaya->nominal,
+                        'nominal_tagihan' => $biaya->nominal,
                         'bulan_tagihan'   => $bulan,
                         'tahun_tagihan'   => $tahunGanjil,
                         'tahun_ajaran_id' => $tahunAjaran->id,
-                        'status_bayar'          => 'BELUM_BAYAR',
+                        'sisa_pembayaran' => $biaya->nominal,
                         'created_at'      => now(),
                         'updated_at'      => now(),
                     ];
@@ -226,7 +225,7 @@ class TagihanSiswaController extends Controller
                         'bulan_tagihan'   => $bulan,
                         'tahun_tagihan'   => $tahunGenap,
                         'tahun_ajaran_id' => $tahunAjaran->id,
-                        'status_bayar'          => 'BELUM_BAYAR',
+                        'sisa_pembayaran' => $biaya->nominal,
                         'created_at'      => now(),
                         'updated_at'      => now(),
                     ];
@@ -242,7 +241,7 @@ class TagihanSiswaController extends Controller
                     'bulan_tagihan'   => null,
                     'tahun_tagihan'   => $tahunGanjil,
                     'tahun_ajaran_id' => $tahunAjaran->id,
-                    'status_bayar'          => 'BELUM_BAYAR',
+                    'sisa_pembayaran' => $biaya->nominal,
                     'created_at'      => now(),
                     'updated_at'      => now(),
                 ];

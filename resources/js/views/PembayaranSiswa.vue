@@ -191,8 +191,7 @@
         <tr>
           <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Tanggal</th>
           <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Siswa</th>
-          <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Biaya</th>
-          <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Periode</th>
+          <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Kelas</th>
           <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Metode</th>
           <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Jumlah</th>
           <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Aksi</th>
@@ -201,11 +200,10 @@
       <tbody class="divide-y divide-gray-100">
         <tr v-for="p in recentPayments" :key="p.id" class="border-t border-gray-700">
           <td class="px-4 py-3">{{ p.tanggal_bayar }}</td>
-          <td class="px-4 py-3">{{ p.tagihan.siswa.nama }}</td>
-          <td class="px-4 py-3">{{ format(p.jumlah_bayar) }}</td>
-          <td class="px-4 py-3">{{ formatPeriode(p.tagihan) }}</td>
+          <td class="px-4 py-3">{{ p.siswa.nama }}</td>
+          <td class="px-4 py-3">{{ p.siswa.kelas }}</td>
           <td class="px-4 py-3">{{ p.metode }}</td>
-          <td class="px-4 py-3">{{ format(p.tagihan.biaya_sekolah.nominal) }}</td>
+          <td class="px-4 py-3">{{ format(p.total_bayar) }}</td>
         </tr>
       </tbody>
     </table>
@@ -383,12 +381,12 @@ const fetchData = async (url = '/api/v1/keuangan/pembayaran?page=1') => {
     const response = await axios.get(url)
     recentPayments.value = response.data.data
     pagination.value = {
-      current_page: response.data.current_page,
-      total: response.data.total,
-      from: response.data.from,
-      to: response.data.to,
-      prev_page_url: response.data.prev_page_url,
-      next_page_url: response.data.next_page_url
+      current_page: response.data.meta.current_page,
+      total: response.data.meta.total,
+      from: response.data.meta.from,
+      to: response.data.meta.to,
+      prev_page_url: response.data.links.prev,
+      next_page_url: response.data.links.next
     }
   } catch (error) {
     console.error("Gagal mengambil data pembayaran:", error)
@@ -442,6 +440,7 @@ const submitPayment = async () => {
   try {
     await axios.post('/api/v1/keuangan/pembayaran', buildPayload())
     alert('Pembayaran berhasil disimpan')
+    await fetchData()
   } catch (error) {
     console.error("Gagal mengambil data pembayaran:", error)
   } finally {
