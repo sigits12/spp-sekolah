@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\V1\BiayaSekolahController;
 use App\Http\Controllers\Api\V1\TagihanSiswaController;
 use App\Http\Controllers\Api\V1\PembayaranController;
+use App\Http\Controllers\Api\V1\LaporanPembayaranController;
 use App\Http\Controllers\Api\V1\SiswaController;
+use App\Http\Controllers\Api\V1\ImportController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -15,9 +17,12 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('pembayaran', PembayaranController::class);
         Route::get('/pembayaran/autofill/{siswa_id}', [PembayaranController::class, 'autofill']);
-
+        
+        Route::get('/laporan/rekap-bulanan', [LaporanPembayaranController::class, 'rekapBulanan']);
 
     });
 
     Route::get('/siswa/search', [SiswaController::class, 'search']);
+    Route::get('/import/pembayaran', [ImportController::class, 'pembayaran']);
+
 });

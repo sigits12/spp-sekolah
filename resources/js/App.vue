@@ -60,7 +60,7 @@
         </div>
       </header>
 
-      <main class="flex-1 overflow-x-hidden overflow-y-auto p-8">
+      <main class="flex-1 overflow-x-hidden overflow-y-auto p-3">
         <router-view></router-view>
       </main>
     </div>

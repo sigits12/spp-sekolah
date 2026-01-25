@@ -21,4 +21,9 @@ class PembayaranDetail extends Model
     {
         return $this->belongsTo(Tagihan::class, 'tagihan_siswa_id');
     }
+
+    public function pembayaran()
+    {
+        return $this->belongsTo(Pembayaran::class, 'pembayaran_id');
+    }
 }

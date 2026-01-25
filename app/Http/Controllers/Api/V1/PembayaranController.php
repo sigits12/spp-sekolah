@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\DB;
 
 class PembayaranController extends Controller
 {
-
     public function autofill($siswaId)
     {
         $bulanan = TagihanSiswa::query()
@@ -39,7 +38,9 @@ class PembayaranController extends Controller
                 'tahun' => $i->tahun_tagihan
             ])->values()
         ];
-        })->values();
+        })
+        ->sortByDesc('nominal_tagihan')
+        ->values();
 
         $nonBulanan = TagihanSiswa::query()
             ->where('siswa_id', $siswaId)
@@ -55,7 +56,7 @@ class PembayaranController extends Controller
                 'kategori' => $item->biayaSekolah->kategori,
                 'remaining' => $item->sisa_pembayaran
             ];
-        });
+        })->sortByDesc('nominal_tagihan');
 
         return response()->json([
             'bulanan' => $bulananResult,
@@ -75,7 +76,7 @@ class PembayaranController extends Controller
             ])
             ->select('id', 'tanggal_bayar', 'siswa_id', 'kelas_aktif_id', 'metode')
             ->withSum('pembayaranDetail as total_bayar', 'jumlah_bayar') 
-            ->orderByDesc('tanggal_bayar')
+            ->orderBy('created_at', 'desc')
             ->paginate(10);
     
         return new PembayaranSiswaCollection($query);
@@ -91,7 +92,7 @@ class PembayaranController extends Controller
             // 'metode'       => 'required|in:tunai,transfer,qris',
         ]);
 
-        $r->metode = 'tunai';
+        $r->metode = $r->metode ? $r->metode : 'tunai';
 
         DB::transaction(function () use ($r) {
 
@@ -104,7 +105,7 @@ class PembayaranController extends Controller
                 ]);
 
             $totalAkumulasi = 0;
-
+            $t = [];
             foreach ($r->pembayaran['bulanan'] as $item) {
 
                 $tagihanBulanan  = TagihanSiswa::where([
@@ -124,27 +125,28 @@ class PembayaranController extends Controller
                 $jumlahBulan = $item['jumlah_bulan'];
                 
                 foreach ($tagihanBulanan as $tagihan) {
+                    
+                    if ($jumlahBulan <= 0) continue;
 
                     $sudahDibayar = PembayaranDetail::where('tagihan_siswa_id', $tagihan->id)
                         ->sum('jumlah_bayar');
                         
-                    $sisa = $tagihan->nominal_tagihan - $sudahDibayar;
-                    if ($sisa <= 0) continue;
-
+                    $dibayar = $tagihan->nominal_tagihan - $sudahDibayar;
+                    if ($dibayar <= 0) continue;
+                    
                     PembayaranDetail::create([
                         'pembayaran_id'     => $pembayaran->id,
                         'tagihan_siswa_id'  => $tagihan->id,
-                        'jumlah_bayar'      => $sisa,
+                        'jumlah_bayar'      => $dibayar,
                     ]);
 
-                    $sisaBaru = $tagihan->sisa_pembayaran - $sisa;
+                    $sisaBaru = $tagihan->sisa_pembayaran - $dibayar;
 
                     $tagihan->update([
-                    'sisa_pembayaran' => $sisaBaru
-                ]);
-
-                    $jumlahBulan--;
-                    $totalAkumulasi += $sisa;
+                        'sisa_pembayaran' => $sisaBaru
+                    ]);
+                    $jumlahBulan --;
+                    $totalAkumulasi += $dibayar;
                 }
             }
 

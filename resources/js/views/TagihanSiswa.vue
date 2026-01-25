@@ -134,18 +134,28 @@
       </div>
     </div>
   </div>
+  <ModalDetailTagihan
+    :show="open"
+    :siswa="selectedSiswa"
+    @close="open = false"
+  />
+
 </template>
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
 import axios from 'axios'
+import ModalDetailTagihan from '@/components/ModalDetailTagihan.vue'
 
 const search = ref('')
 const daftarSiswa = ref([])
 const bulanSekarang = ref('Desember')
 const tahunSekarang = ref('2025')
 const loading = ref(false)
+const selectedSiswa = ref('')
 let searchTimer = null // Variabel untuk menyimpan timer
+
+const open = ref(false)
 
 watch(search, () => {
   // 1. Hapus timer sebelumnya setiap kali user mengetik karakter baru
@@ -156,6 +166,21 @@ watch(search, () => {
     fetchData() // Panggil API setelah 500ms berhenti mengetik
   }, 500)
 })
+
+const openDetail = async (siswa) => {
+  open.value = !open.value
+  selectedSiswa.value = siswa
+  // loading.value = true
+  // try {
+  //   await axios.post('/api/v1/keuangan/pembayaran', buildPayload())
+  //   alert('Pembayaran berhasil disimpan')
+  //   await fetchData()
+  // } catch (error) {
+  //   console.error("Gagal mengambil data pembayaran:", error)
+  // } finally {
+  //   loading.value = false
+  // }
+}
 
 const fetchData = async (url = '/api/v1/keuangan/tagihan-siswa?page=1') => {
   loading.value = true

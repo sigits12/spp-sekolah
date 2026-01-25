@@ -5,8 +5,7 @@ import Dashboard from '../views/Dashboard.vue';
 const routes = [
     {
         path: '/',
-        name: 'home',
-        component: HelloWorld
+        redirect: { name: 'dashboard' }
     },
     {
         path: '/dashboard',
