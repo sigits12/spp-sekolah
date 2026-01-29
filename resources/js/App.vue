@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div class="flex h-screen bg-gray-100 font-sans">
     
     <aside class="w-64 bg-indigo-900 text-white flex flex-col shadow-lg">
@@ -74,4 +74,15 @@
   background-color: #3730a3 !important; /* indigo-800 */
   border-left: 4px solid #fff;
 }
-</style>
+</style> -->
+
+<template>
+  <RouterView />
+</template>
+
+<script setup>
+import { RouterView } from 'vue-router'
+</script>
+
+
+

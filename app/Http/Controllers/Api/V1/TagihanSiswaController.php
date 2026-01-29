@@ -14,6 +14,58 @@ use Illuminate\Support\Facades\Validator;
 
 class TagihanSiswaController extends Controller
 {
+    public function rekap($siswa_id)
+    {
+        // $query = TagihanSiswa::where('siswa_id', $siswa_id);
+        $tagihan = TagihanSiswa::where('siswa_id', $siswa_id)
+                ->with('biayaSekolah:id,tipe_tagihan')
+                ->withSum('pembayaranDetails as total_dibayar', 'jumlah_bayar')
+                ->get()
+                ->sortBy('biayaSekolah.id');
+        
+        $totalTagihan = $tagihan->sum('nominal_tagihan');
+        $totalSisa    = $tagihan->sum('sisa_pembayaran');
+        $totalDibayar = $totalTagihan - $totalSisa;
+
+        $rekap = $tagihan->groupBy(function ($item) {
+            // Kita buat key group menjadi lowercase (spp, komite, ujian) agar konsisten
+            return strtolower($item->kategori);
+        })->map(function ($items, $kategori) {
+            // Kita petakan setiap item dalam grup tersebut
+            return $items->map(function ($item) {
+                $dibayar = $item->total_dibayar ?? 0;
+                $isLunas = $dibayar >= $item->nominal_tagihan;
+
+                // Cek apakah tipe bulanan atau bukan
+                if ($item->biayaSekolah->tipe_tagihan == 'BULANAN') {
+                    return [
+                        'bulan'   => "{$item->bulan_tagihan} {$item->tahun_tagihan}",
+                        'nominal' => (int) $item->nominal_tagihan,
+                        'dibayar' => (int) $dibayar,
+                        'status'  => $isLunas ? 'Lunas' : 'Belum Lunas',
+                    ];
+                }
+
+                return [
+                    'nominal' => (int) $item->nominal_tagihan,
+                    'dibayar' => (int) $dibayar,
+                    'status'  => $isLunas ? 'Lunas' : 'Belum Lunas',
+                ];
+            });
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'dibayar' => $totalDibayar,
+                'tagihan' => $totalTagihan,
+                'sisa' => $totalSisa,
+                'detail' => $rekap
+            ]
+        ]);
+        
+    }
+
     public function index(Request $request)
     {
         $query = TagihanSiswa::with(['siswa', 'biayaSekolah']);
@@ -71,10 +123,10 @@ class TagihanSiswaController extends Controller
             $kelasAktif = $siswa->kelasAktif->kelas ?? null;
             return [
                 'id'              => $siswa->id,
-                'tagihan_id'      => $siswa->id,
                 'nama'            => $siswa->nama,
                 'tingkat'         => $kelasAktif ? $kelasAktif->tingkat : '-', 
                 'nama_kelas'      => $kelasAktif ? $kelasAktif->nama : '-',
+                'tahun_ajaran'    => $kelasAktif ? $kelasAktif->tahun_ajaran_id : null,
                 // 'total_tunggakan' => $siswa->tagihan->sum('nominal_tagihan'), // Hitung total otomatis
                 // 'daftar_kategori' => $kategoriTersedia,
                 'status_kategori' => $statusKategori,
