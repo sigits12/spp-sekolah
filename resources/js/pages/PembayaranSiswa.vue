@@ -1,94 +1,68 @@
 <template>
-  <!-- PAGE HEADER -->
-  <div class="flex items-center justify-between mb-4">
-  <!-- LEFT: TITLE -->
-  <h1 class="text-xl font-semibold text-gray-800">
-    Pembayaran
-  </h1>
-
-  <!-- RIGHT: PERIODE -->
-  <div class="text-sm text-gray-600 bg-white px-3 py-1.5 rounded-md border">
-    Periode:
-    <span class="font-medium text-gray-800">
-      {{ bulanSekarang }} {{ tahunSekarang }}
-    </span>
-  </div>
-  </div>
-  <!-- MAIN CONTENT -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    
     <div class="lg:col-span-2">
+      <div class="flex items-center justify-between mb-2">
+        <!-- LEFT: TITLE -->
+        <h1 class="text-xl font-semibold text-gray-800">
+          Pembayaran
+        </h1>
+
+        <!-- RIGHT: PERIODE -->
+        <div class="text-sm text-gray-600 bg-white px-3 py-1.5 rounded-md border">
+          Periode:
+          <span class="font-medium text-gray-800">
+            {{ bulanSekarang }} {{ tahunSekarang }}
+          </span>
+        </div>
+      </div>
+
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <form @submit.prevent="submitPayment" class="p-4 space-y-4">
+        <form @submit.prevent="submitPayment" class="p-4 space-y-3">
+          <div class="md:col-span-2 relative">
+            <label class="text-xs font-semibold text-gray-600 uppercase">Nama Siswa</label>
+            <div class="relative mt-1">
+              <input
+                v-model="search"
+                :readonly="!!selectedSiswa"
+                @input="onSearch"
+                @focus="!selectedSiswa && (showDropdownSiswa = true)"
+                @keydown.down.prevent="moveDown"
+                @keydown.up.prevent="moveUp"
+                @keydown.enter.prevent="selectActive"
+                class="w-full px-3 py-2 pr-9 rounded-md bg-white border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
+                placeholder="Ketik nama siswa..."
+              />
+              <button
+                v-if="selectedSiswa"
+                type="button"
+                @click="clearSiswa"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 text-sm"
+              >✕</button>
 
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div class="md:col-span-2 relative">
-              <label class="text-xs font-semibold text-gray-600 uppercase">Nama Siswa</label>
-              <div class="relative mt-1">
-                <input
-                  v-model="search"
-                  :readonly="!!selectedSiswa"
-                  @input="onSearch"
-                  @focus="!selectedSiswa && (showDropdownSiswa = true)"
-                  @keydown.down.prevent="moveDown"
-                  @keydown.up.prevent="moveUp"
-                  @keydown.enter.prevent="selectActive"
-                  class="w-full px-3 py-2 pr-9 rounded-md bg-white border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
-                  placeholder="Ketik nama siswa..."
-                />
-                <button
-                  v-if="selectedSiswa"
-                  type="button"
-                  @click="clearSiswa"
-                  class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 text-sm"
-                >✕</button>
-
+              <div
+                v-if="showDropdownSiswa && siswaOptions.length && !selectedSiswa"
+                class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
+              >
                 <div
-                  v-if="showDropdownSiswa && siswaOptions.length && !selectedSiswa"
-                  class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
+                  v-for="(siswa, index) in siswaOptions"
+                  :key="siswa.id"
+                  @click="selectSiswa(siswa)"
+                  :class="[
+                    'px-3 py-2 cursor-pointer text-sm',
+                    index === activeIndex ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'
+                  ]"
                 >
-                  <div
-                    v-for="(siswa, index) in siswaOptions"
-                    :key="siswa.id"
-                    @click="selectSiswa(siswa)"
-                    :class="[
-                      'px-3 py-2 cursor-pointer text-sm',
-                      index === activeIndex ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'
-                    ]"
-                  >
-                    <p class="font-medium">{{ siswa.nama }}</p>
-                    <p class="text-xs opacity-70">Kelas {{ siswa.kelas }}</p>
-                  </div>
+                  <p class="font-medium">{{ siswa.nama }}</p>
+                  <p class="text-xs opacity-70">Kelas {{ siswa.kelas }}</p>
                 </div>
               </div>
             </div>
-
-            <div>
-              <label class="text-xs font-semibold text-gray-600 uppercase">Total Dibayar</label>
-              <input
-                v-model.number="form.total"
-                class="w-full mt-1 px-3 py-2 rounded-md bg-blue-50 text-blue-700 font-semibold border border-blue-200 outline-none text-sm"
-              />
-            </div>
-
-            <div>
-              <label class="text-xs font-semibold text-gray-600 uppercase">Metode</label>
-              <select
-                v-model="form.metode"
-                class="w-full mt-1 px-3 py-2 rounded-md bg-white border border-gray-300 outline-none text-sm"
-              >
-                <option value="tunai">Tunai</option>
-                <option value="transfer">Transfer</option>
-                <option value="qris">QRIS</option>
-              </select>
-            </div>
           </div>
-
-          <div class="rounded-md border border-gray-200 p-3">
+          <div class="rounded-md border border-gray-200 p-2">
             <h3 class="font-semibold text-gray-800 mb-3 text-sm flex items-center">📆 Pembayaran Bulanan</h3>
-            <div class="grid gap-2">
+            <div class="grid gap-1">
               <div v-for="item in monthlyItems" :key="item.biaya_sekolah_id" class="flex flex-col sm:flex-row sm:items-center border border-gray-200 rounded-lg p-2 bg-white">
-                <div class="flex items-center gap-3 flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-1 min-w-0">
                   <div class="h-9 w-9 bg-gray-100 rounded-md flex items-center justify-center text-gray-600 font-bold shrink-0">
                     {{ item.kategori[0] }}
                   </div>
@@ -115,32 +89,62 @@
           </div>
 
           <details class="group rounded-md border border-gray-200 overflow-hidden">
-            <summary class="list-none p-3 flex justify-between items-center cursor-pointer hover:bg-gray-50">
+            <summary class="list-none p-2 flex justify-between items-center cursor-pointer hover:bg-gray-50">
               <h2 class="text-gray-700 font-semibold text-sm">📦 Pembayaran Lainnya</h2>
               <span class="text-gray-500">+</span>
             </summary>
-            <div class="px-4 pb-4 space-y-2 border-t border-gray-100 pt-3 bg-gray-50">
-              <div v-for="item in otherItems" :key="item.biaya_sekolah_id" class="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-2">
-                <div class="flex items-center gap-3">
-                  <div class="h-9 w-9 bg-gray-100 rounded-md flex items-center justify-center text-gray-600 font-bold">{{ item.kategori[0] }}</div>
-                  <div>
-                    <p class="font-semibold text-gray-700 text-sm">{{ item.kategori }}</p>
-                    <p class="text-xs text-gray-500">Sisa : <span class="text-red-600 font-semibold">{{ format(item.remaining) }}</span></p>
+
+            <div class="grid gap-1 border-t border-gray-100 p-2 bg-gray-50">
+              <div v-for="item in otherItems" :key="item.biaya_sekolah_id" class="flex flex-col sm:flex-row sm:items-center border border-gray-200 rounded-lg p-2 bg-white">
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                  <div class="h-9 w-9 bg-gray-100 rounded-md flex items-center justify-center text-gray-600 font-bold shrink-0">
+                    {{ item.kategori[0] }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-semibold text-gray-700 truncate text-sm">{{ item.kategori }}</p>
+                    <p class="text-[11px] text-gray-500">
+                      Sisa :
+                      <span class="text-red-600 font-semibold">{{ format(item.remaining) }}</span>
+                    </p>
                   </div>
                 </div>
-                <CurrencyInput v-model="item.amount" :max="item.remaining" />
+                <div class="flex items-center gap-1">
+                  <CurrencyInput v-model="item.amount" :max="item.remaining" />
+                </div>
               </div>
             </div>
           </details>
 
-          <div class="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex justify-between items-center">
-            <div>
-              <p class="text-xs text-gray-500">Total Dialokasikan</p>
-              <p class="text-lg font-bold text-gray-800">{{ format(totalAllocated) }}</p>
+          <div class="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                Metode:
+              </label>
+              <select
+                v-model="form.metode"
+                class="w-32 px-2 py-1.5 bg-gray-50 border border-gray-300 rounded-md text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+              >
+                <option value="tunai">Tunai</option>
+                <option value="transfer">Transfer</option>
+                <option value="qris">QRIS</option>
+              </select>
             </div>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-md text-sm">
-              Simpan Pembayaran
-            </button>
+
+            <div class="flex items-center gap-8 lg:gap-12">
+              <div class="flex items-center gap-3">
+                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Total :</p>
+                <p class="text-xl font-black text-blue-600 whitespace-nowrap">
+                  {{ format(totalAllocated) }}
+                </p>
+              </div>
+              
+              <button 
+                type="submit" 
+                class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold px-6 py-2.5 rounded-lg text-sm shadow-md transition-all whitespace-nowrap"
+              >
+                Simpan Pembayaran
+              </button>
+            </div>
           </div>
         </form>
       </div>

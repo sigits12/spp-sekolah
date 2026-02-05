@@ -4,7 +4,7 @@
     :value="displayValue"
     @input="onInput"
     @focus="onFocus"
-    class="text-right pl-10 w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700 text-lg"
+    class="text-right w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700 text-sm"
   />
 </template>
 

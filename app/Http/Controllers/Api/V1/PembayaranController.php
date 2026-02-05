@@ -150,10 +150,6 @@ class PembayaranController extends Controller
                 }
             }
 
-            /* ===============================
-            TAGIHAN NON BULANAN
-            =============================== */
-
             foreach ($r->pembayaran['non_bulanan'] as $item) {
 
                 $sisaBayar = $item['nominal'];
@@ -193,9 +189,6 @@ class PembayaranController extends Controller
                 'total_bayar' => $totalAkumulasi,
             ]);
 
-            /* ===============================
-            VALIDASI TOTAL
-            =============================== */
             if ($totalAkumulasi != $r->total_bayar) {
                 throw new \Exception('Total pembayaran tidak sesuai detail');
             }
