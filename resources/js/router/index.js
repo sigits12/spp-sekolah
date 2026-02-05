@@ -30,6 +30,7 @@ import Dashboard from '../pages/Dashboard.vue'
 // import Siswa from '@/pages/Siswa.vue'
 import Tagihan from '../pages/TagihanSiswa.vue'
 import Pembayaran from '../pages/PembayaranSiswa.vue'
+import Login from '../pages/Login.vue'
 // import Laporan from '@/pages/Laporan.vue'
 // import Pengaturan from '@/pages/Pengaturan.vue'
 
@@ -47,6 +48,11 @@ const routes = [
     path: '/',
     component: Admin,
     children: [
+      {
+        path: 'login',
+        name: 'login',
+        component: Login,
+      },
       {
         path: '',
         name: 'dashboard',
