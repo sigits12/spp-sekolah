@@ -22,6 +22,7 @@ class PembayaranSiswaCollection extends ResourceCollection
     protected function mapTagihan($pembayaran)
     {
         return [
+            'id' => $pembayaran->id,
             'tanggal_bayar' => $pembayaran->tanggal_bayar,
             'siswa' => [
                 'nama' => $pembayaran->siswa->nama,

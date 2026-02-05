@@ -47,19 +47,6 @@
                 >
                   {{ kategori }}
                 </button>
-                
-                  <!-- <button class="px-4 py-2 text-sm border-b-2 border-blue-600 text-blue-600">
-                  SPP <span class="ml-1 text-xs bg-red-100 text-red-600 px-2 rounded-full">2</span>
-                  </button>
-                  <button class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">
-                  Buku
-                  </button>
-                  <button class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">
-                  Ekstrakurikuler
-                  </button>
-                  <button class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">
-                  Pembangunan
-                  </button> -->
               </nav>
               </div>
 

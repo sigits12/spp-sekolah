@@ -170,7 +170,7 @@
                   <p class="font-medium text-gray-800">{{ p.siswa.nama }}</p>
                   <p class="text-[10px] text-gray-500">{{ p.tanggal_bayar }} • {{ p.metode }}</p>
                 </td>
-                <td class="px-3 py-3 font-semibold text-blue-600 text-right">{{ format(p.total_bayar) }}</td>
+                <td class="px-3 py-3 font-semibold text-blue-600 text-right underline cursor-pointer" @click="openDetail(p)">{{ format(p.total_bayar) }}</td>
               </tr>
             </tbody>
           </table>
@@ -183,8 +183,14 @@
         </div>
       </div>
     </div>
-
   </div>
+  <ModalDetailPembayaran
+    v-if="showModal"
+    :loading="loading"
+    :siswa="selectedDetailPembayaranSiswa"
+    :data="detailPembayaran"
+    @close="showModal = false"
+  />
 </template>
 
 
@@ -192,12 +198,12 @@
 import { ref, watch, onMounted, computed } from 'vue'
 import axios from 'axios'
 import CurrencyInput from '../components/CurrencyInput.vue'; // 1. Import
+import ModalDetailPembayaran from '../components/ModalDetailPembayaran.vue'; // 1. Import
 
 const search = ref('')
 const recentPayments = ref([])
 const bulanSekarang = ref('Desember')
 const tahunSekarang = ref('2025')
-const loading = ref(false)
 const loadingTagihan = ref(false)
 const siswaOptions = ref([]);
 const selectedSiswa = ref(null);
@@ -205,6 +211,10 @@ const showDropdownSiswa = ref(false);
 const monthlyItems = ref([])
 const otherItems = ref([])
 const activeIndex = ref(-1) 
+const selectedDetailPembayaranSiswa = ref(null);
+const loading = ref(false)
+const showModal = ref(false)
+const detailPembayaran = ref(null)
 
 let searchTimer = null;
 
@@ -252,6 +262,22 @@ const format = (value) => {
     currency: 'IDR',
     maximumFractionDigits: 0
   }).format(value)
+}
+
+const openDetail = async (pembayaran) => {
+  selectedDetailPembayaranSiswa.value = pembayaran
+  showModal.value = !showModal.value
+  loading.value = true
+  detailPembayaran.value = null
+
+  try {
+    const response = await axios.get(`/api/v1/keuangan/pembayaran/${pembayaran.id}`)
+    detailPembayaran.value = response.data.data
+  } catch (error) {
+    console.error("Gagal mengambil data pembayaran:", error)
+  } finally {
+    loading.value = false
+  }
 }
 
 const fetchSiswa = async () => {

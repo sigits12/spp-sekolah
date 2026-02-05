@@ -153,9 +153,9 @@ const search = ref('')
 const daftarSiswa = ref([])
 const bulanSekarang = ref('Desember')
 const tahunSekarang = ref('2025')
-const loading = ref(false)
-const selectedSiswa = ref(null)
 let searchTimer = null
+const selectedSiswa = ref(null)
+const loading = ref(false)
 const showModal = ref(false)
 const detailTagihan = ref(null)
 
