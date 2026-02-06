@@ -187,7 +187,7 @@
   <ModalDetailPembayaran
     v-if="showModal"
     :loading="loading"
-    :siswa="selectedDetailPembayaranSiswa"
+    :pembayaran="selectedDetailPembayaranSiswa"
     :data="detailPembayaran"
     @close="showModal = false"
   />
@@ -271,7 +271,7 @@ const openDetail = async (pembayaran) => {
   detailPembayaran.value = null
 
   try {
-    const response = await axios.get(`/api/v1/keuangan/pembayaran/${pembayaran.id}`)
+    const response = await axios.get(`/api/v1/keuangan/rekap/pembayaran/${pembayaran.id}`)
     detailPembayaran.value = response.data.data
   } catch (error) {
     console.error("Gagal mengambil data pembayaran:", error)

@@ -18,26 +18,19 @@
       
       <div class="grid grid-cols-2 gap-y-2">
         <div class="text-gray-500">ID Transaksi</div>
-        <div class="font-medium text-gray-800">#TRX-2026-0012</div>
+        <div class="font-medium text-gray-800">#{{pembayaran.id}}</div>
 
         <div class="text-gray-500">Tanggal</div>
-        <div class="font-medium text-gray-800">05 Feb 2026</div>
+        <div class="font-medium text-gray-800">{{ formatTanggal(pembayaran.tanggal_bayar) }}</div>
 
         <div class="text-gray-500">Nama Siswa</div>
-        <div class="font-medium text-gray-800">Ahmad Fauzi</div>
+        <div class="font-medium text-gray-800">{{pembayaran.siswa.nama}}</div>
 
         <div class="text-gray-500">Kelas</div>
-        <div class="font-medium text-gray-800">3A</div>
+        <div class="font-medium text-gray-800">{{ pembayaran.siswa.kelas }}</div>
 
         <div class="text-gray-500">Metode</div>
         <div class="font-medium text-gray-800">Tunai</div>
-
-        <div class="text-gray-500">Status</div>
-        <div>
-          <span class="inline-block px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">
-            Lunas
-          </span>
-        </div>
       </div>
 
       <hr>
@@ -47,15 +40,10 @@
         <h3 class="font-semibold text-gray-700 mb-2">
           Rincian Pembayaran
         </h3>
-
         <div class="space-y-2">
-          <div class="flex justify-between">
-            <span>SPP - Feb 2026</span>
-            <span class="font-medium">Rp 25.000</span>
-          </div>
-          <div class="flex justify-between">
-            <span>Komite</span>
-            <span class="font-medium">Rp 50.000</span>
+          <div v-for="item in data" class="flex justify-between">
+            <span>{{ item.item }}</span>
+            <span class="font-medium">{{ formatUang(item.jumlah_bayar) }}</span>
           </div>
         </div>
       </div>
@@ -65,7 +53,7 @@
       <!-- TOTAL -->
       <div class="flex justify-between text-base font-semibold">
         <span>Total</span>
-        <span>Rp 75.000</span>
+        <span>{{ formatUang(pembayaran.total_bayar) }}</span>
       </div>
 
     </div>
@@ -87,14 +75,32 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 
 const props = defineProps({
   loading: Boolean,
-  siswa: Object,
+  pembayaran: Object,
   data: Object
 })
+
 const emit = defineEmits(['close'])
+
 const handleEsc = (e) => {
   if (e.key === 'Escape') {
     emit('close')
   }
+}
+
+const formatUang = (value) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0
+  }).format(value)
+}
+
+const formatTanggal = (tgl) => {
+  return new Date(tgl).toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
 }
 
 onMounted(() => {

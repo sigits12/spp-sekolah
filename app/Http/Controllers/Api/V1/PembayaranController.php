@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PembayaranSiswaCollection;
+use App\Http\Resources\PembayaranDetailCollection;
 use App\Models\Siswa;
 use App\Models\TagihanSiswa;
 use App\Models\Pembayaran;
@@ -62,6 +63,18 @@ class PembayaranController extends Controller
             'bulanan' => $bulananResult,
             'non_bulanan' => $nonBulananResult
         ]);
+    }
+
+    public function detail($id) 
+    {
+        $query = PembayaranDetail::with([
+                                'tagihan:id,biaya_sekolah_id,bulan_tagihan,tahun_tagihan',
+                                'tagihan.biayaSekolah:id,kategori'
+                            ])
+                            ->where('pembayaran_id', $id)
+                            ->get();
+
+        return new PembayaranDetailCollection($query);
     }
 
     /**

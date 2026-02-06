@@ -19,7 +19,7 @@ class PembayaranDetail extends Model
 
     public function tagihan()
     {
-        return $this->belongsTo(Tagihan::class, 'tagihan_siswa_id');
+        return $this->belongsTo(TagihanSiswa::class, 'tagihan_siswa_id');
     }
 
     public function pembayaran()
