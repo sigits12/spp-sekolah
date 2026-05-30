@@ -45,14 +45,14 @@ import Login from '../pages/Login.vue'
 
 const routes = [
   {
+    path: '/login',
+    name: 'login',
+    component: Login,
+  },
+  {
     path: '/',
     component: Admin,
     children: [
-      {
-        path: 'login',
-        name: 'login',
-        component: Login,
-      },
       {
         path: '',
         name: 'dashboard',

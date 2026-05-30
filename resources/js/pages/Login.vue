@@ -16,7 +16,11 @@
 
   <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
     <div class="bg-white py-8 px-6 shadow-sm border border-gray-200 rounded-xl sm:px-10">
-      <form class="space-y-6" @submit.prevent="">
+
+      <div v-if="errorMessage" class="mb-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-600 text-sm">
+        {{ errorMessage }}
+      </div>
+      <form class="space-y-6" @submit.prevent="handleLogin">
         
         <div>
           <label for="email" class="block text-xs font-bold text-gray-600 uppercase tracking-wider">
@@ -24,12 +28,13 @@
           </label>
           <div class="mt-1">
             <input 
-              id="email" 
+              v-model="loginForm.email"
               name="email" 
               type="text" 
               required 
               class="w-full px-3 py-2.5 rounded-md bg-gray-50 border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm transition-all"
               placeholder="Masukkan username Anda"
+              :disabled="isLoading"
             >
           </div>
         </div>
@@ -40,12 +45,13 @@
           </label>
           <div class="mt-1">
             <input 
-              id="password" 
+              v-model="loginForm.password"
               name="password" 
               type="password" 
               required 
               class="w-full px-3 py-2.5 rounded-md bg-gray-50 border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm transition-all"
               placeholder="••••••••"
+              :disabled="isLoading"
             >
           </div>
         </div>
@@ -73,9 +79,18 @@
         <div>
           <button 
             type="submit" 
+            :disabled="isLoading"
             class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all active:scale-[0.98]"
           >
-            Masuk ke Panel
+          <span v-if="isLoading" class="flex items-center gap-2">
+            <!-- Spinner Sederhana -->
+            <svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Memproses...
+          </span>
+          <span v-else>Masuk ke Panel</span>
           </button>
         </div>
       </form>
@@ -103,3 +118,46 @@
   </div>
 </div>
 </template>
+
+<script setup>
+import { ref, reactive } from 'vue';
+import axios from 'axios';
+
+// State menggunakan reactive untuk objek form
+const loginForm = reactive({
+  email: '',
+  password: ''
+});
+
+// State menggunakan ref untuk nilai primitif
+const isLoading = ref(false);
+const errorMessage = ref(null);
+
+const handleLogin = async () => {
+  isLoading.value = true;
+  errorMessage.value = null;
+
+  try {
+    const response = await axios.post('/login', {
+      email: loginForm.email,
+      password: loginForm.password
+    });
+
+    // Asumsi API mengembalikan token
+    const token = response.data.token;
+    localStorage.setItem('auth_token', token);
+    
+    // Redirect ke dashboard atau halaman pembayaran
+    window.location.href = '/pembayaran'; 
+
+  } catch (error) {
+    if (error.response && error.response.status === 401) {
+      errorMessage.value = 'Email atau password salah.';
+    } else {
+      errorMessage.value = 'Terjadi koneksi ke server. Silakan coba lagi.';
+    }
+  } finally {
+    isLoading.value = false;
+  }
+};
+</script>

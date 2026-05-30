@@ -140,6 +140,7 @@
               
               <button 
                 type="submit" 
+                :disabled="isSubmitting"
                 class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold px-6 py-2.5 rounded-lg text-sm shadow-md transition-all whitespace-nowrap"
               >
                 Simpan Pembayaran
@@ -215,6 +216,7 @@ const selectedDetailPembayaranSiswa = ref(null);
 const loading = ref(false)
 const showModal = ref(false)
 const detailPembayaran = ref(null)
+const isSubmitting = ref(false)
 
 let searchTimer = null;
 
@@ -413,6 +415,8 @@ const formatPeriode = (payment) => {
 }
 
 const submitPayment = async () => {
+  if (isSubmitting.value) return
+  isSubmitting.value = true
   loading.value = true
   try {
     await axios.post('/api/v1/keuangan/pembayaran', buildPayload())
@@ -422,6 +426,7 @@ const submitPayment = async () => {
     console.error("Gagal mengambil data pembayaran:", error)
   } finally {
     loading.value = false
+    isSubmitting.value = false
   }
 }
 

@@ -9,6 +9,35 @@ use App\Http\Controllers\Api\V1\ImportController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
+    Route::post('/login', function (Request $request) {
+        $credentials = $request->validate([
+            'username' => 'required',
+            'password' => 'required',
+        ]);
+
+        if (!Auth::attempt($credentials)) {
+            return response()->json(['message' => 'Login gagal'], 401);
+        }
+
+        $request->session()->regenerate();
+
+        return response()->json([
+            'user' => Auth::user()
+        ]);
+    });
+
+    Route::post('/logout', function (Request $request) {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return response()->json(['message' => 'Logout sukses']);
+    });
+
+    Route::get('/me', function (Request $request) {
+        return $request->user();
+    })->middleware('auth:sanctum');
+    
     Route::prefix('keuangan')->group(function () {
         Route::get('/biaya-sekolah', [BiayaSekolahController::class, 'index']);
         Route::apiResource('tagihan', TagihanSiswaController::class);
