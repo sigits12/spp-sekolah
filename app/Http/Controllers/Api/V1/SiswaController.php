@@ -11,10 +11,11 @@ class SiswaController extends Controller
     public function search(Request $request) {
         $query = $request->input('q');
 
-        $siswa = Siswa::with([
+        $siswa = Siswa::whereHas('kelasAktif')
+            ->with([
                 'kelasAktif' => function ($query) {
                     // Gunakan nama_tabel.kolom untuk menghindari ambigu
-                    $query->select('riwayat_kelas.id', 'riwayat_kelas.siswa_id', 'riwayat_kelas.kelas_id');
+                    $query->select('riwayat_kelas.id', 'riwayat_kelas.siswa_id', 'riwayat_kelas.kelas_id', 'tahun_ajaran_id');
                 },
                 'kelasAktif.kelas:id,nama'   // Ambil id dan kolom nama_kelas
             ])

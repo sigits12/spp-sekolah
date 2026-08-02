@@ -16,6 +16,9 @@ class Pembayaran extends Model
         'total_bayar',
         'metode',
         'keterangan',
+        'pesan_terkirim',
+        'status_pesan',
+        'keterangan_gagal',
     ];
 
     public function siswa()

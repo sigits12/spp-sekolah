@@ -22,6 +22,7 @@ class TagihanSiswa extends Model
         'tahun_tagihan',
         'tahun_ajaran_id',
         'sisa_pembayaran',
+        'kelas_aktif_id',
         'created_at',
         'updated_at',
     ];

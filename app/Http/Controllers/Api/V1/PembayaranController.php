@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PembayaranSiswaCollection;
 use App\Http\Resources\PembayaranDetailCollection;
+use App\Http\Resources\RiwayatPembayaranCollection;
+use App\Services\NotificationService;
+use App\Services\WhatsAppService;
 use App\Models\Siswa;
 use App\Models\TagihanSiswa;
 use App\Models\Pembayaran;
@@ -16,6 +19,17 @@ use Illuminate\Support\Facades\DB;
 
 class PembayaranController extends Controller
 {
+
+    protected $notificationService;
+    protected $whatsAppService;
+
+    // Menggunakan Constructor Injection
+    public function __construct(NotificationService $notificationService, WhatsAppService $whatsAppService)
+    {
+        $this->notificationService = $notificationService;
+        $this->whatsAppService = $whatsAppService;
+    }
+
     public function autofill($siswaId)
     {
         $bulanan = TagihanSiswa::query()
@@ -24,6 +38,7 @@ class PembayaranController extends Controller
                 $q->where('tipe_tagihan', 'BULANAN')
             )
             ->where('sisa_pembayaran', '>', 0)
+            ->where('tahun_ajaran_id', 2)
             ->get();
 
         $bulananGrouped = $bulanan->groupBy('biaya_sekolah_id');
@@ -48,15 +63,27 @@ class PembayaranController extends Controller
             ->whereHas('biayaSekolah', fn ($q) =>
                 $q->where('tipe_tagihan', 'SEKALI')
             )
-            ->where('sisa_pembayaran', '>', 0)
+            ->where(function ($query) {
+                $query->where('sisa_pembayaran', '>', 0)
+                    ->orWhere('kategori', 'PEMBANGUNAN'); // Sesuaikan nama kolom/kategori Anda
+            })
+            ->where('tahun_ajaran_id', 2)
             ->get();
 
         $nonBulananResult = $nonBulanan->map(function ($item) {
-            return [
+            $kategori = $item->biayaSekolah->kategori;
+            $data = [
                 'biaya_sekolah_id' => $item->biaya_sekolah_id,
-                'kategori' => $item->biayaSekolah->kategori,
-                'remaining' => $item->sisa_pembayaran
+                'kategori'         => $kategori,
             ];
+
+            if ($kategori === 'PEMBANGUNAN') {
+                $data['sudah_terkumpul'] = $item->nominal_tagihan; 
+            } else {
+                $data['remaining'] = $item->sisa_pembayaran;
+            }
+
+            return $data;
         })->sortByDesc('nominal_tagihan');
 
         return response()->json([
@@ -88,10 +115,10 @@ class PembayaranController extends Controller
                 'pembayaranDetail',
             ])
             ->select('id', 'tanggal_bayar', 'siswa_id', 'kelas_aktif_id', 'metode')
-            ->withSum('pembayaranDetail as total_bayar', 'jumlah_bayar') 
+            ->withSum('pembayaranDetail as total_bayar', 'jumlah_bayar')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
-    
+
         return new PembayaranSiswaCollection($query);
     }
     /**
@@ -107,8 +134,10 @@ class PembayaranController extends Controller
 
         $r->metode = $r->metode ? $r->metode : 'tunai';
 
-        DB::transaction(function () use ($r) {
+        $siswa = Siswa::findOrFail($r->siswa_id);
 
+        DB::transaction(function () use ($r, $siswa) {
+            $totalAkumulasi = 0;
             $pembayaran = Pembayaran::create([
                     'siswa_id'       => $r->siswa_id,
                     'kelas_aktif_id' => $r->kelas_aktif_id,
@@ -117,7 +146,6 @@ class PembayaranController extends Controller
                     'total_bayar'    => 0, // sementara
                 ]);
 
-            $totalAkumulasi = 0;
             $t = [];
             foreach ($r->pembayaran['bulanan'] as $item) {
 
@@ -136,10 +164,14 @@ class PembayaranController extends Controller
 
 
                 $jumlahBulan = $item['jumlah_bulan'];
+                $subtotalBulanan = 0;
+                $namaBiaya = '';
                 
                 foreach ($tagihanBulanan as $tagihan) {
                     
                     if ($jumlahBulan <= 0) continue;
+                    
+                    $namaBiaya = $tagihan->biayaSekolah->kategori;
 
                     $sudahDibayar = PembayaranDetail::where('tagihan_siswa_id', $tagihan->id)
                         ->sum('jumlah_bayar');
@@ -160,9 +192,26 @@ class PembayaranController extends Controller
                     ]);
                     $jumlahBulan --;
                     $totalAkumulasi += $dibayar;
+                    $subtotalBulanan += $dibayar;
+                }
+
+                if ($subtotalBulanan > 0) {
+                    $jumlahBulanDibayar = $item['jumlah_bulan'] - $jumlahBulan;
+                    
+                    $sisaTagihanAktif = TagihanSiswa::where([
+                        'siswa_id'         => $r->siswa_id,
+                        'kelas_aktif_id'   => $r->kelas_aktif_id,
+                        'biaya_sekolah_id' => $item['biaya_sekolah_id'],
+                    ])->whereNotNull('bulan_tagihan')->sum('sisa_pembayaran');
+
+                    $keteranganStatus = ($sisaTagihanAktif == 0) ? ' (*Lunas*)' : '';
+
+                    $rincian[] = [
+                        'nama'    => $namaBiaya . ' ' . $jumlahBulanDibayar . ' bulan ' . $keteranganStatus,
+                        'nominal' => $subtotalBulanan
+                    ];
                 }
             }
-
             foreach ($r->pembayaran['non_bulanan'] as $item) {
 
                 $sisaBayar = $item['nominal'];
@@ -172,7 +221,10 @@ class PembayaranController extends Controller
                             'kelas_aktif_id'  => $r->kelas_aktif_id,
                             'biaya_sekolah_id'=> $item['biaya_sekolah_id'],
                         ])
-                        ->where('sisa_pembayaran', '>', 0)
+                        ->where(function ($query) {
+                            $query->where('sisa_pembayaran', '>', 0)
+                                ->orWhere('kategori', 'PEMBANGUNAN'); // Sesuaikan nama kolom/kategori Anda
+                        })
                         ->whereNull('bulan_tagihan')
                         ->lockForUpdate()
                         ->firstOrFail();
@@ -180,8 +232,12 @@ class PembayaranController extends Controller
                 $sudahDibayar = PembayaranDetail::where('tagihan_siswa_id', $tagihan->id)
                     ->sum('jumlah_bayar');
                 
-                $dibayar = min($sisaBayar, $tagihan->sisa_pembayaran);
-
+                if ($item['kategori'] == 'PEMBANGUNAN') {
+                    $dibayar = $item['nominal'];
+                } else {
+                    $dibayar = min($sisaBayar, $tagihan->sisa_pembayaran);
+                }
+                
                 if ($sisaBayar <= 0) continue;
 
                 $pembayaranDetail = PembayaranDetail::create([
@@ -189,11 +245,25 @@ class PembayaranController extends Controller
                     'tagihan_siswa_id'  => $tagihan->id,
                     'jumlah_bayar'      => $dibayar,
                 ]);
-
+                
                 $sisaBaru = $tagihan->sisa_pembayaran - $dibayar;
-                $tagihan->update([
-                    'sisa_pembayaran' => $sisaBaru
-                ]);
+                
+                if ($item['kategori'] == 'PEMBANGUNAN') {
+                    $tagihan->update([
+                        'nominal_tagihan' => $dibayar,
+                    ]);
+                } else {
+                    $tagihan->update([
+                        'sisa_pembayaran' => $sisaBaru
+                    ]);
+                }
+
+                $keteranganStatus = ($sisaBaru == 0) ? ' (*Lunas*)' : '';
+
+                $rincian[] = [
+                    'nama'    => $tagihan->biayaSekolah->kategori . ' ' . $keteranganStatus,
+                    'nominal' => $dibayar
+                ];
 
                 $totalAkumulasi += $dibayar;
             }
@@ -205,8 +275,34 @@ class PembayaranController extends Controller
             if ($totalAkumulasi != $r->total_bayar) {
                 throw new \Exception('Total pembayaran tidak sesuai detail');
             }
-        });
+            
+            $parameterPesanTest = [
+                'nama_siswa'    => $siswa->nama,
+                'metode'        => $r->metode,
+                'nama_kelas'    => $siswa->kelasAktif->kelas->nama,
+                'tanggal_verifikasi' => Carbon::now()->isoFormat('dddd, D MMMM Y'),
+                'rincian'       => $rincian,
+                'total_masuk'   => $totalAkumulasi,
+            ];
 
+            $pesan['pesan'] = $this->notificationService->formatPesanPembayaran($parameterPesanTest);
+            $pesan['no_whatsapp'] = $siswa->no_whatsapp;
+            
+            $notifikasi = $this->whatsAppService->sendMessage($pesan['no_whatsapp'], $pesan['pesan']);
+            if ($notifikasi) {
+                $pembayaran->update([
+                    'pesan_terkirim' => $pesan['pesan'],
+                    'status_pesan'   => 'terkirim',
+                    'keterangan_gagal' => null,
+                ]);
+            } else {
+                $pembayaran->update([
+                    'pesan_terkirim' => $pesan['pesan'],
+                    'status_pesan'   => 'gagal',
+                    'keterangan_gagal' => 'Gagal mengirim pesan WhatsApp',
+                ]);
+            }
+        });
 
         return response()->json([
             'message' => 'Pembayaran berhasil disimpan'
@@ -308,5 +404,23 @@ class PembayaranController extends Controller
         return response()->json([
             'message' => 'Pembayaran berhasil dihapus'
         ]);
+    }
+
+    public function history($siswa_id)
+    {
+        $payments = Pembayaran::with(['siswa'])
+            ->where('siswa_id', $siswa_id)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+        
+        if (!$payments) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Pembayaran tidak ditemukan.',
+            ], 404);
+        }
+
+        return new RiwayatPembayaranCollection($payments);
+
     }
 }

@@ -299,7 +299,154 @@ class TagihanSiswaController extends Controller
                 ];
             }
         }
+        // 3. Simpan sekaligus (Mass Insert)
+        DB::transaction(function () use ($dataInsert) {
+            DB::table('tagihan_siswa')->insert($dataInsert);
+        });
 
+        return response()->json(['message' => 'Tagihan SPP dan Buku berhasil diterbitkan']);
+    }
+
+    public function generateTagihanV2(Request $request)
+    {
+        // 1. Ambil Tahun Ajaran Aktif
+        $tahunAjaran = TahunAjaran::where('is_aktif', true)->first();
+        
+        $tingkat = $request->tingkat;
+        $tahun   = $tahunAjaran->id;
+
+        $bulanGanjil = [7, 8, 9, 10, 11, 12];
+        $tahunGanjil = $tahunAjaran->ganjil;
+        $bulanGenap = [1, 2, 3, 4, 5, 6];
+        $tahunGenap = $tahunAjaran->genap;
+        
+        $siswaList = Siswa::whereHas('riwayatKelas', function ($q) use ($tingkat, $tahun) {
+                                    $q->where('tahun_ajaran_id', $tahun)
+                                        ->whereHas('kelas', function ($q) use ($tingkat) {
+                                            $q->where('tingkat', $tingkat);
+                                        });
+                                })
+                                ->whereDoesntHave('tagihan', function ($q) use ($tahun) {
+                                    $q->where('tahun_ajaran_id', $tahun);
+                                })->get();
+        
+        // 2. Ambil Master Biaya (Buku & SPP) untuk tahun tersebut
+        // Anda mungkin butuh filter tambahan seperti 'tingkat' jika biaya buku berbeda tiap kelas
+
+        $sppPilihan = in_array($tingkat, [1, 2]) ? 'pilihan 1 kelas bawah' : 'pilihan 2';
+
+        if ($tingkat = 1) {
+            $biayaList = BiayaSekolah::where('tahun_ajaran_id', $tahun)
+                ->where(function ($q) use ($tingkat, $sppPilihan) {
+                    $q->where(function ($q) use ($sppPilihan) {
+                        $q->where('kategori', 'SPP')
+                        ->where('keterangan', $sppPilihan);
+                    })
+                    ->orWhere(function ($q) use ($tingkat) {
+                        $q->where('kategori', 'BUKU')
+                        ->where('tingkat', $tingkat);
+                    })
+                    ->orWhere(function ($q) use ($tingkat) {
+                        $q->where('kategori', 'SARPRAS')
+                        ->where('keterangan', 'murid baru');
+                    })
+                    ->orWhereNotIn('kategori', ['SPP', 'BUKU', 'SARPRAS']);
+                })
+                ->get();
+        } else {
+
+            $biayaList = BiayaSekolah::where('tahun_ajaran_id', $tahun)
+                ->where(function ($q) use ($tingkat, $sppPilihan) {
+
+                    // 🔹 SPP sesuai pilihan
+                    $q->where(function ($q) use ($sppPilihan) {
+                        $q->where('kategori', 'SPP')
+                        ->where('keterangan', $sppPilihan);
+                    })
+
+                    // 🔹 BUKU sesuai tingkat
+                    ->orWhere(function ($q) use ($tingkat) {
+                        $q->where('kategori', 'BUKU')
+                        ->where('tingkat', $tingkat);
+                    })
+
+                    // 🔹 Biaya lain (selain SPP & BUKU)
+                    ->orWhereNotIn('kategori', ['SPP', 'BUKU']);
+                })
+                ->get();
+        }
+
+        $biayaBulanan = $biayaList->where('tipe_tagihan', 'BULANAN');
+        $biayaSekali  = $biayaList->where('tipe_tagihan', 'SEKALI');
+
+        $dataInsert = [];
+
+        foreach ($siswaList as $siswa) {
+
+            foreach ($biayaBulanan as $biaya) {
+                foreach ($bulanGanjil as $bulan) {
+                    $dataInsert[] = [
+                        'siswa_id'        => $siswa->id,
+                        'biaya_sekolah_id'=> $biaya->id,
+                        'kategori'        => $biaya->kategori,
+                        'nominal_tagihan' => $biaya->nominal,
+                        'bulan_tagihan'   => $bulan,
+                        'tahun_tagihan'   => $tahunGanjil,
+                        'tahun_ajaran_id' => $tahunAjaran->id,
+                        'sisa_pembayaran' => $biaya->nominal,
+                        'kelas_aktif_id' => $siswa->kelasAktif ? $siswa->kelasAktif->kelas->id : null,
+                        'created_at'      => now(),
+                        'updated_at'      => now(),
+                    ];
+                }
+
+                foreach ($bulanGenap as $bulan) {
+                    $dataInsert[] = [
+                        'siswa_id'        => $siswa->id,
+                        'biaya_sekolah_id'        => $biaya->id,
+                        'kategori'        => $biaya->kategori,
+                        'nominal_tagihan'         => $biaya->nominal,
+                        'bulan_tagihan'   => $bulan,
+                        'tahun_tagihan'   => $tahunGenap,
+                        'tahun_ajaran_id' => $tahunAjaran->id,
+                        'sisa_pembayaran' => $biaya->nominal,
+                        'kelas_aktif_id' => $siswa->kelasAktif ? $siswa->kelasAktif->kelas->id : null,
+                        'created_at'      => now(),
+                        'updated_at'      => now(),
+                    ];
+                }
+            }
+
+            foreach ($biayaSekali as $biaya) {
+
+                if ($biaya->kategori == 'SERAGAM') {
+                    // Tentukan suffix keterangan yang dicari berdasarkan jenis kelamin
+                    $targetKeterangan = ($siswa->jenis_kelamin == 'L') ? 'seragam pa' : 'seragam pi';
+
+                    // Lewati item seragam yang tidak sesuai dengan jenis kelamin siswa
+                    if (strtolower($biaya->keterangan) !== $targetKeterangan) {
+                        continue; // Lewati iterasi loop ini
+                    }
+                }
+
+                $biayaId = $biaya->id;
+                $nominalBiaya = $biaya->nominal;
+    
+                $dataInsert[] = [
+                    'siswa_id'        => $siswa->id,
+                    'biaya_sekolah_id'        => $biayaId,
+                    'kategori'        => $biaya->kategori,
+                    'nominal_tagihan' => $nominalBiaya,
+                    'bulan_tagihan'   => null,
+                    'tahun_tagihan'   => $tahunGanjil,
+                    'tahun_ajaran_id' => $tahunAjaran->id,
+                    'sisa_pembayaran' => $biaya->nominal,
+                    'kelas_aktif_id' => $siswa->kelasAktif ? $siswa->kelasAktif->kelas->id : null,
+                    'created_at'      => now(),
+                    'updated_at'      => now(),
+                ];
+            }
+        }
         // 3. Simpan sekaligus (Mass Insert)
         DB::transaction(function () use ($dataInsert) {
             DB::table('tagihan_siswa')->insert($dataInsert);

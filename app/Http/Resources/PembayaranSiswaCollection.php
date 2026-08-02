@@ -26,7 +26,7 @@ class PembayaranSiswaCollection extends ResourceCollection
             'tanggal_bayar' => $pembayaran->tanggal_bayar,
             'siswa' => [
                 'nama' => $pembayaran->siswa->nama,
-                'kelas' => $pembayaran->siswa->kelasAktif->kelas->nama
+                'kelas' => $pembayaran->siswa->kelasAktif ? $pembayaran->siswa->kelasAktif->kelas->nama : null,
             ],
             'metode' => $pembayaran->metode,
             'total_bayar' => $pembayaran->total_bayar,

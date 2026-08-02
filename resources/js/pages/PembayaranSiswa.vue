@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
     <div class="lg:col-span-2">
       <div class="flex items-center justify-between mb-2">
         <!-- LEFT: TITLE -->
@@ -102,11 +102,22 @@
                   </div>
                   <div class="min-w-0">
                     <p class="font-semibold text-gray-700 truncate text-sm">{{ item.kategori }}</p>
+                    <p v-if="item.sudah_terkumpul !== undefined" class="text-[11px] text-gray-500">
+                        Terkumpul :
+                        <span class="text-emerald-600 font-semibold">{{ format(item.sudah_terkumpul) }}</span>
+                    </p>
+                    <p v-else class="text-[11px] text-gray-500">
+                        Sisa :
+                        <span class="text-red-600 font-semibold">{{ format(item.remaining) }}</span>
+                    </p>
+                  </div>
+                  <!-- <div class="min-w-0">
+                    <p class="font-semibold text-gray-700 truncate text-sm">{{ item.kategori }}</p>
                     <p class="text-[11px] text-gray-500">
                       Sisa :
                       <span class="text-red-600 font-semibold">{{ format(item.remaining) }}</span>
                     </p>
-                  </div>
+                  </div> -->
                 </div>
                 <div class="flex items-center gap-1">
                   <CurrencyInput v-model="item.amount" :max="item.remaining" />
@@ -125,8 +136,8 @@
                 class="w-32 px-2 py-1.5 bg-gray-50 border border-gray-300 rounded-md text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
               >
                 <option value="tunai">Tunai</option>
-                <option value="transfer">Transfer</option>
-                <option value="qris">QRIS</option>
+                <option value="bri">BRI</option>
+                <option value="bsi">BSI</option>
               </select>
             </div>
 
@@ -148,6 +159,93 @@
             </div>
           </div>
         </form>
+
+        <div class="w-full bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6">
+          <h3 class="text-lg font-bold text-slate-800 mb-4">Histori Pembayaran</h3>
+
+          <!-- State Loading -->
+          <div v-if="loading" class="py-8 text-center text-sm text-slate-500">
+            Memuat riwayat pembayaran...
+          </div>
+
+          <!-- State Kosong -->
+          <div v-else-if="!historyList || historyList.length === 0" class="py-8 text-center text-sm text-slate-500 border border-dashed border-slate-200 rounded-lg">
+            Belum ada riwayat pembayaran untuk siswa ini.
+          </div>
+
+          <!-- Tabel Data -->
+          <div v-else class="overflow-x-auto rounded-lg border border-slate-200">
+            <table class="w-full text-left text-sm text-slate-600 border-collapse">
+              <!-- Header Tabel -->
+              <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                <tr>
+                  <th class="px-4 py-3 font-semibold">Tanggal</th>
+                  <th 
+                    v-for="col in columns" 
+                    :key="col" 
+                    class="px-4 py-3 font-semibold"
+                  >
+                    {{ formatHeaderLabel(col) }}
+                  </th>
+                  <!-- <th class="px-4 py-3 font-semibold">SPP</th>
+                  <th class="px-4 py-3 font-semibold">Ekstrakurikuler</th>
+                  <th class="px-4 py-3 font-semibold">BAM</th>
+                  <th class="px-4 py-3 font-semibold">Pendaftaran</th> -->
+                  <th class="px-4 py-3 font-semibold">Total Bayar</th>
+                  <th class="px-4 py-3 font-semibold">Metode</th>
+                </tr>
+              </thead>
+
+              <!-- Body Tabel -->
+              <tbody class="divide-y divide-slate-200 bg-white">
+                <tr 
+                  v-for="item in historyList" 
+                  :key="item.id" 
+                  class="hover:bg-slate-50 transition-colors"
+                >
+                  <!-- Tanggal -->
+                  <td class="px-4 py-3 whitespace-nowrap text-slate-700 font-medium">
+                    {{ item.tanggal }}
+                  </td>
+
+                  <td 
+                    v-for="col in columns" 
+                    :key="col" 
+                    class="px-4 py-3 whitespace-nowrap"
+                  >
+                    {{ formatRupiah(item.kategori?.[col]) }}
+                  </td>
+
+                  <!-- Kategori Pembayaran (Diakses via item.kategori) -->
+                  <!-- <td class="px-4 py-3 whitespace-nowrap">
+                    {{ formatRupiah(item.kategori?.spp) }}
+                  </td>
+                  <td class="px-4 py-3 whitespace-nowrap">
+                    {{ formatRupiah(item.kategori?.ekstrakurikuler) }}
+                  </td>
+                  <td class="px-4 py-3 whitespace-nowrap">
+                    {{ formatRupiah(item.kategori?.bam) }}
+                  </td>
+                  <td class="px-4 py-3 whitespace-nowrap">
+                    {{ formatRupiah(item.kategori?.pendaftaran) }}
+                  </td> -->
+
+                  <!-- Total Bayar -->
+                  <td class="px-4 py-3 whitespace-nowrap font-bold text-slate-900">
+                    {{ formatRupiah(item.total_bayar) }}
+                  </td>
+
+                  <!-- Metode Pembayaran -->
+                  <td class="px-4 py-3 whitespace-nowrap">
+                    <span class="inline-block px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                      {{ item.metode || '-' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -203,6 +301,8 @@ import ModalDetailPembayaran from '../components/ModalDetailPembayaran.vue'; // 
 
 const search = ref('')
 const recentPayments = ref([])
+const columns = ref([])
+const historyList = ref([])
 const bulanSekarang = ref('Desember')
 const tahunSekarang = ref('2025')
 const loadingTagihan = ref(false)
@@ -315,7 +415,17 @@ const selectSiswa = async (siswa) => {
   // Simpan ke form
   form.value.siswa_id = siswa.id;
   form.value.kelas_aktif_id = siswa.kelas_aktif_id;
-  await fetchTagihanSiswa()
+
+  try {
+    loading.value = true
+    await fetchTagihanSiswa()
+    await fetchHistory()
+
+  } catch (error) {
+    console.error('Gagal memuat data siswa:', error)
+  } finally {
+    loading.value = false
+  }
 };
 
 const clearSiswa = () => {
@@ -422,11 +532,30 @@ const submitPayment = async () => {
     await axios.post('/api/v1/keuangan/pembayaran', buildPayload())
     alert('Pembayaran berhasil disimpan')
     await fetchData()
+    await fetchHistory()
   } catch (error) {
     console.error("Gagal mengambil data pembayaran:", error)
   } finally {
     loading.value = false
     isSubmitting.value = false
+  }
+}
+
+const fetchHistory = async () => {
+  try {
+    loading.value = true
+    const response = await fetch(`/api/v1/keuangan/pembayaran/siswa/${form.value.siswa_id}/history`)
+    if (!response.ok) {
+      throw new Error('Gagal mengambil data dari server.')
+    }
+    const result = await response.json()
+    historyList.value = result.data
+    
+    columns.value = result.meta.columns
+  } catch (error) {
+    errorMessage.value = error.message || 'Terjadi kesalahan sistem.'
+  } finally {
+    loading.value = false
   }
 }
 
@@ -442,7 +571,8 @@ const buildPayload = () => {
     .filter(i => i.amount > 0)
     .map(i => ({
       biaya_sekolah_id: i.biaya_sekolah_id,
-      nominal: i.amount
+      nominal: i.amount,
+      kategori: i.kategori
   }))
 
   const payload = {
@@ -467,6 +597,20 @@ const pagination = ref({
   prev_page_url: null,
   next_page_url: null
 })
+
+const formatRupiah = (number) => {
+  if (!number || number === 0) return 'Rp 0'
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0
+  }).format(number)
+}
+
+const formatHeaderLabel = (key) => {
+  if (!key) return ''
+  return key.replace(/_/g, ' ').toUpperCase()
+}
 
 onMounted(fetchData)
 

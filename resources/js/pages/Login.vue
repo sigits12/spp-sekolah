@@ -154,7 +154,7 @@ const handleLogin = async () => {
     if (error.response && error.response.status === 401) {
       errorMessage.value = 'Email atau password salah.';
     } else {
-      errorMessage.value = 'Terjadi koneksi ke server. Silakan coba lagi.';
+      errorMessage.value = 'Terjadi kesalahan pada server. Silakan coba lagi.';
     }
   } finally {
     isLoading.value = false;

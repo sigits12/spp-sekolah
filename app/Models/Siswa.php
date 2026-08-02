@@ -10,7 +10,7 @@ class Siswa extends Model
 
     public function kelasAktif()
     {
-        return $this->hasOne(RiwayatKelas::class)->latestOfMany();
+        return $this->hasOne(RiwayatKelas::class)->tahunAktif();
     }
 
     public function riwayatKelas()
@@ -20,6 +20,11 @@ class Siswa extends Model
 
     public function tagihan()
     {
-        return $this->hasMany(TagihanSiswa::class, 'siswa_id');
+        return $this->hasMany(TagihanSiswa::class, 'siswa_id', 'id');
+    }
+
+    public function pembayaran()
+    {
+        return $this->hasMany(Pembayaran::class, 'siswa_id', 'id');
     }
 }
