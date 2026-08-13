@@ -16,12 +16,14 @@ class RiwayatPembayaranCollection extends ResourceCollection
 
     protected $staticCategories = [
                 'SPP',
-                'EKSTRAKURIKULER',
+                'EKSKUL',
                 'KOMITE',
                 'UJIAN',
                 'BUKU',
                 'SARPRAS',
-                'PEMBANGUNAN'
+                'PEMBANGUNAN',
+                'SERAGAM',
+                'BUKU RAPOT',
             ];
     public function toArray(Request $request): array
     {
@@ -45,10 +47,9 @@ class RiwayatPembayaranCollection extends ResourceCollection
         foreach ($staticCategories as $cat) {
             $kategoriData[$cat] = 0;
         }
-
         foreach ($pembayaran->pembayaranDetail as $detail) {
             if ($detail->tagihan) {
-                $keyKategori = str_replace(' ', '_', trim($detail->tagihan->kategori));
+                $keyKategori = trim($detail->tagihan->kategori);
                 if (in_array($keyKategori, $staticCategories)) {
                     $kategoriData[$keyKategori] += (float) $detail->jumlah_bayar;
                 }

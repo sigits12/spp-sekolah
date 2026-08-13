@@ -60,16 +60,14 @@ class PembayaranController extends Controller
 
         $nonBulanan = TagihanSiswa::query()
             ->where('siswa_id', $siswaId)
-            ->whereHas('biayaSekolah', fn ($q) =>
-                $q->where('tipe_tagihan', 'SEKALI')
-            )
+            ->where('tahun_ajaran_id', 2)
+            ->whereHas('biayaSekolah', fn ($q) => $q->where('tipe_tagihan', 'SEKALI'))
             ->where(function ($query) {
                 $query->where('sisa_pembayaran', '>', 0)
-                    ->orWhere('kategori', 'PEMBANGUNAN'); // Sesuaikan nama kolom/kategori Anda
+                    ->orWhere('kategori', 'PEMBANGUNAN');
             })
-            ->where('tahun_ajaran_id', 2)
             ->get();
-
+        
         $nonBulananResult = $nonBulanan->map(function ($item) {
             $kategori = $item->biayaSekolah->kategori;
             $data = [
@@ -409,8 +407,11 @@ class PembayaranController extends Controller
     public function history($siswa_id)
     {
         $payments = Pembayaran::with(['siswa'])
+            ->whereHas('pembayaranDetail.tagihan', function ($q) {
+                $q->where('tahun_ajaran_id', 2);
+            })
             ->where('siswa_id', $siswa_id)
-            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->paginate(10);
         
         if (!$payments) {

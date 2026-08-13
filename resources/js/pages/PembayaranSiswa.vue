@@ -7,13 +7,6 @@
           Pembayaran
         </h1>
 
-        <!-- RIGHT: PERIODE -->
-        <div class="text-sm text-gray-600 bg-white px-3 py-1.5 rounded-md border">
-          Periode:
-          <span class="font-medium text-gray-800">
-            {{ bulanSekarang }} {{ tahunSekarang }}
-          </span>
-        </div>
       </div>
 
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -179,20 +172,16 @@
               <!-- Header Tabel -->
               <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200">
                 <tr>
-                  <th class="px-4 py-3 font-semibold">Tanggal</th>
+                  <th class="px-2 py-1 font-semibold">Tanggal</th>
+                  <th class="px-2 py-1 font-semibold">Total Bayar</th>
                   <th 
                     v-for="col in columns" 
                     :key="col" 
-                    class="px-4 py-3 font-semibold"
+                    class="px-2 py-1 font-semibold"
                   >
                     {{ formatHeaderLabel(col) }}
                   </th>
-                  <!-- <th class="px-4 py-3 font-semibold">SPP</th>
-                  <th class="px-4 py-3 font-semibold">Ekstrakurikuler</th>
-                  <th class="px-4 py-3 font-semibold">BAM</th>
-                  <th class="px-4 py-3 font-semibold">Pendaftaran</th> -->
-                  <th class="px-4 py-3 font-semibold">Total Bayar</th>
-                  <th class="px-4 py-3 font-semibold">Metode</th>
+                  <th class="px-2 py-1 font-semibold">Metode</th>
                 </tr>
               </thead>
 
@@ -204,39 +193,22 @@
                   class="hover:bg-slate-50 transition-colors"
                 >
                   <!-- Tanggal -->
-                  <td class="px-4 py-3 whitespace-nowrap text-slate-700 font-medium">
+                  <td class="px-2 py-1 whitespace-nowrap text-slate-700 font-medium">
                     {{ item.tanggal }}
                   </td>
-
+                  <td class="px-2 py-1 whitespace-nowrap font-bold text-slate-900">
+                    {{ format(item.total_bayar) }}
+                  </td>
                   <td 
                     v-for="col in columns" 
                     :key="col" 
-                    class="px-4 py-3 whitespace-nowrap"
+                    class="px-2 py-1 whitespace-nowrap"
                   >
-                    {{ formatRupiah(item.kategori?.[col]) }}
-                  </td>
-
-                  <!-- Kategori Pembayaran (Diakses via item.kategori) -->
-                  <!-- <td class="px-4 py-3 whitespace-nowrap">
-                    {{ formatRupiah(item.kategori?.spp) }}
-                  </td>
-                  <td class="px-4 py-3 whitespace-nowrap">
-                    {{ formatRupiah(item.kategori?.ekstrakurikuler) }}
-                  </td>
-                  <td class="px-4 py-3 whitespace-nowrap">
-                    {{ formatRupiah(item.kategori?.bam) }}
-                  </td>
-                  <td class="px-4 py-3 whitespace-nowrap">
-                    {{ formatRupiah(item.kategori?.pendaftaran) }}
-                  </td> -->
-
-                  <!-- Total Bayar -->
-                  <td class="px-4 py-3 whitespace-nowrap font-bold text-slate-900">
-                    {{ formatRupiah(item.total_bayar) }}
+                    {{ format(item.kategori?.[col]) }}
                   </td>
 
                   <!-- Metode Pembayaran -->
-                  <td class="px-4 py-3 whitespace-nowrap">
+                  <td class="px-2 py-1 whitespace-nowrap">
                     <span class="inline-block px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 text-slate-700 border border-slate-200">
                       {{ item.metode || '-' }}
                     </span>
@@ -419,8 +391,6 @@ const selectSiswa = async (siswa) => {
   try {
     loading.value = true
     await fetchTagihanSiswa()
-    await fetchHistory()
-
   } catch (error) {
     console.error('Gagal memuat data siswa:', error)
   } finally {
@@ -454,6 +424,7 @@ const fetchTagihanSiswa = async () => {
       ...item,
       amount: 0 // ← input user
     }))
+    await fetchHistory()
     
   } catch (e) {
     console.error(e)
@@ -543,12 +514,12 @@ const submitPayment = async () => {
 
 const fetchHistory = async () => {
   try {
-    loading.value = true
     const response = await fetch(`/api/v1/keuangan/pembayaran/siswa/${form.value.siswa_id}/history`)
     if (!response.ok) {
       throw new Error('Gagal mengambil data dari server.')
     }
     const result = await response.json()
+    
     historyList.value = result.data
     
     columns.value = result.meta.columns
@@ -597,15 +568,6 @@ const pagination = ref({
   prev_page_url: null,
   next_page_url: null
 })
-
-const formatRupiah = (number) => {
-  if (!number || number === 0) return 'Rp 0'
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0
-  }).format(number)
-}
 
 const formatHeaderLabel = (key) => {
   if (!key) return ''
