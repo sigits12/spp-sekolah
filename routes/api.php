@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BiayaSekolahController;
 use App\Http\Controllers\Api\V1\TagihanSiswaController;
 use App\Http\Controllers\Api\V1\PembayaranController;
@@ -10,23 +11,7 @@ use App\Http\Controllers\Api\V1\RiwayatKelasController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
-    Route::post('/login', function (Request $request) {
-        $credentials = $request->validate([
-            'username' => 'required',
-            'password' => 'required',
-        ]);
-
-        if (!Auth::attempt($credentials)) {
-            return response()->json(['message' => 'Login gagal'], 401);
-        }
-
-        $request->session()->regenerate();
-
-        return response()->json([
-            'user' => Auth::user()
-        ]);
-    });
-
+    Route::post('/login', [AuthController::class, 'login']);
     Route::post('/logout', function (Request $request) {
         Auth::logout();
         $request->session()->invalidate();
@@ -39,11 +24,11 @@ Route::prefix('v1')->group(function () {
         return $request->user();
     })->middleware('auth:sanctum');
 
-    // Route::middleware('auth:sanctum')->group(function () {
-    //         Route::middleware('role:admin,tu')->group(function () {
-    //             Route::get('/siswa/index', [SiswaController::class, 'index']);
-    //         });
-    // });
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::middleware('role:admin,tu')->group(function () {
+            Route::get('/siswa-index', [SiswaController::class, 'index']);
+        });
+    });
     
     Route::prefix('keuangan')->group(function () {
         Route::get('/biaya-sekolah', [BiayaSekolahController::class, 'index']);
@@ -59,7 +44,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/laporan/rekap-bulanan', [LaporanPembayaranController::class, 'rekapBulanan']);
         Route::get('/pembayaran/siswa/{siswa_id}/history', [PembayaranController::class, 'history']);
     });
-                Route::get('/siswa/index', [SiswaController::class, 'index']);
 
     Route::get('/siswa/search', [SiswaController::class, 'search']);
     Route::get('/import/pembayaran', [ImportController::class, 'pembayaran']);

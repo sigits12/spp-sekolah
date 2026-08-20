@@ -8,13 +8,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
-    public function handle(Request $request, Closure $next): Response
-    {
+    public function handle(
+        Request $request,
+        Closure $next,
+        ...$roles
+    ): Response {
         $user = $request->user();
 
         if (!$user) {
@@ -23,9 +21,9 @@ class RoleMiddleware
             ], 401);
         }
 
-        if (!$user->role || !in_array($user->role->name, $roles)) {
+        if (!$user->hasRole($roles)) {
             return response()->json([
-                'message' => 'Anda tidak memiliki akses.',
+                'message' => 'Forbidden',
             ], 403);
         }
 
