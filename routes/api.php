@@ -38,6 +38,12 @@ Route::prefix('v1')->group(function () {
     Route::get('/me', function (Request $request) {
         return $request->user();
     })->middleware('auth:sanctum');
+
+    // Route::middleware('auth:sanctum')->group(function () {
+    //         Route::middleware('role:admin,tu')->group(function () {
+    //             Route::get('/siswa/index', [SiswaController::class, 'index']);
+    //         });
+    // });
     
     Route::prefix('keuangan')->group(function () {
         Route::get('/biaya-sekolah', [BiayaSekolahController::class, 'index']);
@@ -53,6 +59,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/laporan/rekap-bulanan', [LaporanPembayaranController::class, 'rekapBulanan']);
         Route::get('/pembayaran/siswa/{siswa_id}/history', [PembayaranController::class, 'history']);
     });
+                Route::get('/siswa/index', [SiswaController::class, 'index']);
 
     Route::get('/siswa/search', [SiswaController::class, 'search']);
     Route::get('/import/pembayaran', [ImportController::class, 'pembayaran']);

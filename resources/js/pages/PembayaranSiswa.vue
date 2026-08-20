@@ -11,7 +11,7 @@
 
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <form @submit.prevent="submitPayment" class="p-4 space-y-3">
-          <div class="md:col-span-2 relative">
+          <!-- <div class="md:col-span-2 relative">
             <label class="text-xs font-semibold text-gray-600 uppercase">Nama Siswa</label>
             <div class="relative mt-1">
               <input
@@ -50,7 +50,10 @@
                 </div>
               </div>
             </div>
-          </div>
+          </div> -->
+          <!-- <div class="md:col-span-2 relative"> -->
+          <SiswaSearchInput @select-siswa="onSiswaSelected" />
+          <!-- </div> -->
           <div class="rounded-md border border-gray-200 p-2">
             <h3 class="font-semibold text-gray-800 mb-3 text-sm flex items-center">📆 Pembayaran Bulanan</h3>
             <div class="grid gap-1">
@@ -270,6 +273,7 @@ import { ref, watch, onMounted, computed } from 'vue'
 import axios from 'axios'
 import CurrencyInput from '../components/CurrencyInput.vue'; // 1. Import
 import ModalDetailPembayaran from '../components/ModalDetailPembayaran.vue'; // 1. Import
+import SiswaSearchInput from '../components/SiswaSearchInput.vue'
 
 const search = ref('')
 const recentPayments = ref([])
@@ -289,6 +293,7 @@ const loading = ref(false)
 const showModal = ref(false)
 const detailPembayaran = ref(null)
 const isSubmitting = ref(false)
+const selectedSiswaData = ref(null)
 
 let searchTimer = null;
 
@@ -308,6 +313,18 @@ const initialForm = {
   tanggal: '',
   nominal: 0,
   metode: '',
+}
+
+const onSiswaSelected = (siswa) => {
+  // selectedSiswa.value = siswa
+  selectSiswa(siswa)
+
+  if (siswa) {
+    // Jalankan eksekusi berikutnya (misal: fetchTagihanSiswa / fetchHistory)
+    console.log('Siswa dipilih:', siswa.id)
+  } else {
+    console.log('Pencarian dibersihkan')
+  }
 }
 
 const totalAllocated = computed(() => {
@@ -513,6 +530,7 @@ const submitPayment = async () => {
 }
 
 const fetchHistory = async () => {
+console.log(form)
   try {
     const response = await fetch(`/api/v1/keuangan/pembayaran/siswa/${form.value.siswa_id}/history`)
     if (!response.ok) {
