@@ -174,6 +174,7 @@
                 <tr>
                   <th class="px-2 py-1 font-semibold">Tanggal</th>
                   <th class="px-2 py-1 font-semibold">Total Bayar</th>
+                  <th class="px-2 py-1 font-semibold">Metode</th>
                   <th 
                     v-for="col in columns" 
                     :key="col" 
@@ -181,7 +182,6 @@
                   >
                     {{ formatHeaderLabel(col) }}
                   </th>
-                  <th class="px-2 py-1 font-semibold">Metode</th>
                 </tr>
               </thead>
 
@@ -199,6 +199,11 @@
                   <td class="px-2 py-1 whitespace-nowrap font-bold text-slate-900">
                     {{ format(item.total_bayar) }}
                   </td>
+                  <td class="px-2 py-1 whitespace-nowrap">
+                    <span class="inline-block px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                      {{ item.metode || '-' }}
+                    </span>
+                  </td>
                   <td 
                     v-for="col in columns" 
                     :key="col" 
@@ -208,11 +213,6 @@
                   </td>
 
                   <!-- Metode Pembayaran -->
-                  <td class="px-2 py-1 whitespace-nowrap">
-                    <span class="inline-block px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                      {{ item.metode || '-' }}
-                    </span>
-                  </td>
                 </tr>
               </tbody>
             </table>
