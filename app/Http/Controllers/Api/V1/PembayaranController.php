@@ -230,6 +230,7 @@ class PembayaranController extends Controller
                 $sudahDibayar = PembayaranDetail::where('tagihan_siswa_id', $tagihan->id)
                     ->sum('jumlah_bayar');
                 
+
                 if ($item['kategori'] == 'PEMBANGUNAN') {
                     $dibayar = $item['nominal'];
                 } else {
@@ -248,7 +249,7 @@ class PembayaranController extends Controller
                 
                 if ($item['kategori'] == 'PEMBANGUNAN') {
                     $tagihan->update([
-                        'nominal_tagihan' => $dibayar,
+                        'nominal_tagihan' => $sudahDibayar + $dibayar,
                     ]);
                 } else {
                     $tagihan->update([
