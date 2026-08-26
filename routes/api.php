@@ -26,6 +26,7 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('role:admin,tu')->group(function () {
+            Route::get('/siswa', [SiswaController::class, 'list']);
             Route::get('/siswa-index', [SiswaController::class, 'index']);
             Route::prefix('keuangan')->group(function () {
                 Route::get('/biaya-sekolah', [BiayaSekolahController::class, 'index']);
