@@ -121,7 +121,19 @@
 
 <script setup>
 import { ref, reactive } from 'vue';
-import axios from 'axios';
+import { useAuthStore } from '@/stores/auth'
+import { useRouter, useRoute } from 'vue-router'
+
+const router = useRouter()
+const auth = useAuthStore()
+
+const roleRedirect = {
+  admin: '/pembayaran',
+  tu: '/tu/dashboard',
+  wali_kelas: '/wali-kelas/dashboard',
+  kepsek: '/kepsek/dashboard',
+}
+
 
 // State menggunakan reactive untuk objek form
 const loginForm = reactive({
@@ -138,17 +150,17 @@ const handleLogin = async () => {
   errorMessage.value = null;
 
   try {
-    const response = await axios.post('/login', {
+    const response = await auth.login({
       email: loginForm.email,
       password: loginForm.password
     });
 
-    // Asumsi API mengembalikan token
-    const token = response.data.token;
-    localStorage.setItem('auth_token', token);
+    router.push(roleRedirect[auth.user.role] || '/')
+
+    // const token = response.data.token;
+    // localStorage.setItem('auth_token', token);
     
-    // Redirect ke dashboard atau halaman pembayaran
-    window.location.href = '/pembayaran'; 
+    // window.location.href = '/pembayaran'; 
 
   } catch (error) {
     if (error.response && error.response.status === 401) {
