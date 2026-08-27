@@ -89,6 +89,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import api from '@/api/api'
 
 // ==========================================
 // 1. EMITS & PROPS (Komunikasi Antar Komponen)
@@ -123,22 +124,9 @@ const fetchAllSiswa = async () => {
   isError.value = false
 
   try {
-    // Dipanggil hanya SEKALI saat halaman/menu dibuka
-    const response = await fetch('/api/v1/siswa/index', {
-      headers: {
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP Error: ${response.status}`)
-    }
-
-    const result = await response.json()
+    const response = await api.get('/siswa-index')
     
-    // Simpan payload array ke variabel reactive di RAM browser
-    siswaMaster.value = result.data || []
+    siswaMaster.value = response.data.data || []
 
   } catch (error) {
     console.error('[In-Memory Search] Gagal memuat data master siswa:', error)

@@ -34,15 +34,6 @@ import Login from '../pages/Login.vue'
 // import Laporan from '@/pages/Laporan.vue'
 // import Pengaturan from '@/pages/Pengaturan.vue'
 
-// const routes = [
-//   { path: '/', name: 'dashboard', component: Dashboard },
-// //   { path: '/siswa', name: 'siswa', component: Siswa },
-// //   { path: '/tagihan', name: 'tagihan', component: Tagihan },
-//   { path: '/pembayaran', name: 'pembayaran', component: Pembayaran },
-// //   { path: '/laporan', name: 'laporan', component: Laporan },
-// //   { path: '/pengaturan', name: 'pengaturan', component: Pengaturan },
-// ]
-
 const routes = [
   {
     path: '/login',

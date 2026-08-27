@@ -251,9 +251,9 @@
         </div>
 
         <div class="p-3 border-t border-gray-200 bg-white flex justify-between items-center gap-2">
-          <button @click="fetchData(pagination.prev_page_url)" :disabled="!pagination.prev_page_url" class="p-1.5 border border-gray-300 rounded-md text-xs disabled:opacity-50">←</button>
+          <button @click="fetchRecentPayments(pagination.prev_page_url)" :disabled="!pagination.prev_page_url" class="p-1.5 border border-gray-300 rounded-md text-xs disabled:opacity-50">←</button>
           <span class="text-[10px] text-gray-500">{{ pagination.from }}-{{ pagination.to }} dari {{ pagination.total }}</span>
-          <button @click="fetchData(pagination.next_page_url)" :disabled="!pagination.next_page_url" class="p-1.5 border border-gray-300 rounded-md text-xs disabled:opacity-50">→</button>
+          <button @click="fetchRecentPayments(pagination.next_page_url)" :disabled="!pagination.next_page_url" class="p-1.5 border border-gray-300 rounded-md text-xs disabled:opacity-50">→</button>
         </div>
       </div>
     </div>
@@ -271,6 +271,7 @@
 <script setup>
 import { ref, watch, onMounted, computed } from 'vue'
 import axios from 'axios'
+import api from '@/api/api'
 import CurrencyInput from '../components/CurrencyInput.vue'; // 1. Import
 import ModalDetailPembayaran from '../components/ModalDetailPembayaran.vue'; // 1. Import
 import SiswaSearchInput from '../components/SiswaSearchInput.vue'
@@ -329,16 +330,13 @@ const onSiswaSelected = (siswa) => {
 
 const totalAllocated = computed(() => {
 
-  // 1. Hitung total monthly (pastikan ada isinya)
   const monthlyTotal = (monthlyItems.value || []).reduce((sum, item) => {
     const qty = item.payMonths || 0;
     const nominal = item.nominal_tagihan || 0;
     return sum + (qty * nominal);
   }, 0);
 
-  // 2. Hitung total non-monthly (pastikan ada isinya)
   const nonMonthlyTotal = (otherItems.value || []).reduce((sum, item) => {
-    // Hanya jumlahkan jika item dipilih (selected)
     return sum + (item.amount || 0);
   }, 0);
 
@@ -346,7 +344,6 @@ const totalAllocated = computed(() => {
   return monthlyTotal + nonMonthlyTotal
 })
 
-// 3. Methods (Fungsi Biasa)
 const format = (value) => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -398,16 +395,12 @@ const onSearch = () => {
 
 const selectSiswa = async (siswa) => {
   selectedSiswa.value = siswa;
-  search.value = `${siswa.nama} — Kelas ${siswa.kelas}`
-  showDropdownSiswa.value = false;
-  activeIndex.value = -1
-  // Simpan ke form
   form.value.siswa_id = siswa.id;
   form.value.kelas_aktif_id = siswa.kelas_aktif_id;
 
   try {
     loading.value = true
-    await fetchTagihanSiswa()
+    await fetchTagihanSiswa(siswa.id)
   } catch (error) {
     console.error('Gagal memuat data siswa:', error)
   } finally {
@@ -426,13 +419,11 @@ const clearSiswa = () => {
 
 };
 
-const fetchTagihanSiswa = async () => {
-  loadingTagihan.value = true
+const fetchTagihanSiswa = async (id) => {
   try {
-    const res = await fetch(
-      `/api/v1/keuangan/pembayaran/autofill/${form.value.siswa_id}`
-    )
-    const json = await res.json()
+    const response = await api.get(`/keuangan/pembayaran/autofill/${id}`)
+
+    const json = await response.data
     monthlyItems.value = (json.bulanan || []).map(item => ({
       ...item,
       payMonths: 0 // ← input user, frontend only
@@ -441,22 +432,23 @@ const fetchTagihanSiswa = async () => {
       ...item,
       amount: 0 // ← input user
     }))
+
     await fetchHistory()
     
   } catch (e) {
     console.error(e)
     monthlyItems.value = []
-    otherItems.value = []
   } finally {
-    loadingTagihan.value = false
+    // loadingTagihan.value = false
   }
 }
 
-const fetchData = async (url = '/api/v1/keuangan/pembayaran?page=1') => {
-  loading.value = true
+const fetchRecentPayments = async (url = '/keuangan/pembayaran?page=1') => {
   try {
-    const response = await axios.get(url)
+    const response = await api.get(url)
+
     recentPayments.value = response.data.data
+    // console.log(response.data.meta.current_page)
     pagination.value = {
       current_page: response.data.meta.current_page,
       total: response.data.meta.total,
@@ -517,10 +509,10 @@ const submitPayment = async () => {
   isSubmitting.value = true
   loading.value = true
   try {
-    await axios.post('/api/v1/keuangan/pembayaran', buildPayload())
+    await api.post('/keuangan/pembayaran', buildPayload())
     alert('Pembayaran berhasil disimpan')
-    await fetchData()
     await fetchHistory()
+    await fetchRecentPayments()
   } catch (error) {
     console.error("Gagal mengambil data pembayaran:", error)
   } finally {
@@ -530,17 +522,12 @@ const submitPayment = async () => {
 }
 
 const fetchHistory = async () => {
-console.log(form)
   try {
-    const response = await fetch(`/api/v1/keuangan/pembayaran/siswa/${form.value.siswa_id}/history`)
-    if (!response.ok) {
-      throw new Error('Gagal mengambil data dari server.')
-    }
-    const result = await response.json()
+    const response = await api.get(`/keuangan/pembayaran/siswa/${form.value.siswa_id}/history`)
     
-    historyList.value = result.data
+    historyList.value = response.data.data
     
-    columns.value = result.meta.columns
+    columns.value = response.data.meta.columns
   } catch (error) {
     errorMessage.value = error.message || 'Terjadi kesalahan sistem.'
   } finally {
@@ -592,6 +579,6 @@ const formatHeaderLabel = (key) => {
   return key.replace(/_/g, ' ').toUpperCase()
 }
 
-onMounted(fetchData)
+onMounted(fetchRecentPayments)
 
 </script>
