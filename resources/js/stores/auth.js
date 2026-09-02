@@ -44,7 +44,8 @@ export const useAuthStore = defineStore('auth', {
       this.user = { ...this.user, ...payload }
       storage.set('auth_user', this.user)
     },
-    logout() {
+    async logout() {
+      await authApi.logout()      
       this.user = null
       this.token = null
       storage.remove('auth_user')

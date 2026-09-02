@@ -1,36 +1,15 @@
-// import { createRouter, createWebHistory } from 'vue-router';
-// import HelloWorld from '../views/HelloWorld.vue';
-// import Dashboard from '../views/Dashboard.vue';
-
-// const routes = [
-//     {
-//         path: '/',
-//         redirect: { name: 'dashboard' }
-//     },
-//     {
-//         path: '/dashboard',
-//         name: 'dashboard',
-//         component: Dashboard
-//     },
-//     { path: '/biaya-sekolah', component: () => import('../views/BiayaSekolah.vue') },
-//     { path: '/tagihan', component: () => import('../views/TagihanSiswa.vue') },
-//     { path: '/pembayaran', name: 'pembayaran', component: () => import('../views/PembayaranSiswa.vue') }
-// ];
-
-// const router = createRouter({
-//     history: createWebHistory(),
-//     routes
-// });
-
-// export default router;
-
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import Admin from '../layouts/Admin.vue'
+import Wali from '../layouts/Wali.vue'
 import Dashboard from '../pages/Dashboard.vue'
 // import Siswa from '@/pages/Siswa.vue'
 import Tagihan from '../pages/TagihanSiswa.vue'
 import Pembayaran from '../pages/PembayaranSiswa.vue'
+import PembayaranOrangTua from '../pages/PembayaranOrangTua.vue'
 import Login from '../pages/Login.vue'
+import RiwayatPembayaran from '../pages/wali/RiwayatPembayaran.vue'
+import DashboardLayout from '@/layouts/DashboardLayout.vue'
 // import Laporan from '@/pages/Laporan.vue'
 // import Pengaturan from '@/pages/Pengaturan.vue'
 
@@ -38,32 +17,88 @@ const routes = [
   {
     path: '/login',
     name: 'login',
+    meta: { guest: true },
     component: Login,
   },
   {
     path: '/',
-    component: Admin,
+    component: DashboardLayout,
+    meta: { requiresAuth: true },
     children: [
       {
-        path: '',
+        path: 'dashboard',
         name: 'dashboard',
         component: Dashboard,
+        meta: { requiresAuth: true, roles: [ 'admin', 'tu', 'wali_kelas', 'kepsek', 'wali' ] }
       },
       {
         path: 'pembayaran',
         name: 'pembayaran',
         component: Pembayaran,
+        meta: { requiresAuth: true, roles: [ 'admin', 'tu', 'wali_kelas', 'kepsek' ] }
       },
       {
         path: 'tagihan',
         name: 'tagihan',
         component: Tagihan,
+        meta: { requiresAuth: true, roles: [ 'admin', 'tu', 'wali_kelas', 'kepsek' ] }
+      },
+      {
+        path: 'riwayat-pembayaran',
+        name: 'riwayat-pembayaran',
+        component: RiwayatPembayaran,
+        meta: { requiresAuth: true, roles: [ 'wali' ] }
+      },
+      {
+        path: 'pembayaran-orang-tua',
+        name: 'pembayaran-orang-tua',
+        component: PembayaranOrangTua,
+        meta: { requiresAuth: true, roles: [ 'wali' ] }
       },
     ],
   },
 ]
 
-export default createRouter({
+const router = createRouter({
   history: createWebHistory(),
-  routes,
+  routes
 })
+
+router.beforeEach((to) => {
+  const auth = useAuthStore()
+
+  // Belum login
+  if (
+    to.meta.requiresAuth &&
+    !auth.isAuthenticated
+  ) {
+    return {
+      name: 'login'
+    }
+  }
+
+  // Sudah login tetapi mencoba ke login
+  if (
+    to.meta.guest &&
+    auth.isAuthenticated
+  ) {
+    return {
+      name: 'dashboard'
+    }
+  }
+
+  // Cek role
+  if (to.meta.roles) {
+    const userRole = auth.user?.role
+
+    if (!to.meta.roles.includes(userRole)) {
+      return {
+        name: 'dashboard'
+      }
+    }
+  }
+
+  return true
+})
+
+export default router

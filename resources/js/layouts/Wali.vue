@@ -14,7 +14,7 @@
 
       <div class="flex items-center gap-4">
         <span class="text-sm text-gray-600">Bendahara</span>
-        <button @click="handleLogout" :disabled="isLoading" class="text-sm text-red-500">{{ isLoading ? 'Logging out...' : 'Logout' }}</button>
+        <button class="text-sm text-red-500">Logout</button>
       </div>
     </nav>
 
@@ -74,15 +74,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter, RouterView } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 
-const auth = useAuthStore()
-
-const isLoading = ref(false)
+import { useRoute, RouterView } from 'vue-router'
 
 const route = useRoute()
-const router = useRouter()
 
 const isActive = (name) => route.name === name
 
@@ -108,16 +103,6 @@ const handleResize = () => {
   }
 }
 
-const handleLogout = async () => {
-  isLoading.value = true
-  try {
-    await auth.logout()
-  } finally {
-    isLoading.value = false
-    router.push('/login')
-  }
-}
-
 onMounted(() => {
   handleResize()
   window.addEventListener('resize', handleResize)
@@ -128,13 +113,7 @@ onUnmounted(() => {
 })
 
 const menus = [
-  { name: 'Dashboard', icon: '📊', route: 'dashboard' },
-  // { name: 'Siswa', icon: '👨‍🎓', route: 'siswa' },
-  { name: 'Tagihan', icon: '🧾', route: 'tagihan' },
-  { name: 'Pembayaran', icon: '💰', route: 'pembayaran' },
-  { name: 'Pembayaran Orang Tua', icon: '💰', route: 'pembayaran-orang-tua' },
-  // { name: 'Laporan', icon: '📈', route: 'laporan' },
-  // { name: 'Pengaturan', icon: '⚙️', route: 'pengaturan' },
+  { name: 'Riwayat Pembayaran', icon: '💰', route: 'riwayat-pembayaran' },
 ]
 
 </script>

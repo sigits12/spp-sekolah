@@ -319,13 +319,6 @@ const initialForm = {
 const onSiswaSelected = (siswa) => {
   // selectedSiswa.value = siswa
   selectSiswa(siswa)
-
-  if (siswa) {
-    // Jalankan eksekusi berikutnya (misal: fetchTagihanSiswa / fetchHistory)
-    console.log('Siswa dipilih:', siswa.id)
-  } else {
-    console.log('Pencarian dibersihkan')
-  }
 }
 
 const totalAllocated = computed(() => {
@@ -529,7 +522,7 @@ const fetchHistory = async () => {
     
     columns.value = response.data.meta.columns
   } catch (error) {
-    errorMessage.value = error.message || 'Terjadi kesalahan sistem.'
+    console.log(error.message || 'Terjadi kesalahan sistem.')
   } finally {
     loading.value = false
   }

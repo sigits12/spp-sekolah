@@ -132,6 +132,7 @@ const roleRedirect = {
   tu: '/tu/dashboard',
   wali_kelas: '/wali-kelas/dashboard',
   kepsek: '/kepsek/dashboard',
+  wali: '/riwayat-pembayaran',
 }
 
 
@@ -154,7 +155,6 @@ const handleLogin = async () => {
       email: loginForm.email,
       password: loginForm.password
     });
-
     router.push(roleRedirect[auth.user.role] || '/')
 
     // const token = response.data.token;

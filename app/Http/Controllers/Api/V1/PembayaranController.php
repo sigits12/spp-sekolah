@@ -425,4 +425,17 @@ class PembayaranController extends Controller
         return new RiwayatPembayaranCollection($payments);
 
     }
+
+    public function storeOrangTua(Request $r)
+    {
+        $r->validate([
+            'siswa_id'   => 'required|exists:siswa,id',
+            'total_bayar' => 'required|numeric|min:1',
+            // 'metode'       => 'required|in:tunai,transfer,qris',
+        ]);
+
+        return response()->json([
+            'message' => 'Pembayaran orang tua berhasil disimpan'
+        ], 201);
+    }
 }

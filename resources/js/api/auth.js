@@ -20,6 +20,20 @@ export const authApi = {
       }
     }
   },
+  async logout() {
+    try {
+      const response = await api.post('/logout')
+      return response.data
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        'Logut gagal'
+      throw {
+        message,
+        status: error.response?.status,
+      }
+    }
+  },
   async register({ name, email }) {
     await wait()
     const user = { id: Date.now(), name, email, role: 'Admin', avatar: 'https://i.pravatar.cc/100?img=5' }

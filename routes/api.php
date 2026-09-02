@@ -12,19 +12,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/logout', function (Request $request) {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return response()->json(['message' => 'Logout sukses']);
-    });
 
     Route::get('/me', function (Request $request) {
         return $request->user();
     })->middleware('auth:sanctum');
 
     Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
         Route::middleware('role:admin,tu')->group(function () {
             Route::get('/siswa', [SiswaController::class, 'list']);
             Route::get('/siswa-index', [SiswaController::class, 'index']);
@@ -37,12 +31,30 @@ Route::prefix('v1')->group(function () {
                 Route::get('/rekap/pembayaran/{id}', [PembayaranController::class, 'detail']);
 
                 Route::apiResource('pembayaran', PembayaranController::class);
+                Route::post('pembayaran-orang-tua', [PembayaranController::class, 'storeOrangTua']);
                 Route::get('/pembayaran/autofill/{siswa_id}', [PembayaranController::class, 'autofill']);
                 
                 Route::get('/laporan/rekap-bulanan', [LaporanPembayaranController::class, 'rekapBulanan']);
                 Route::get('/pembayaran/siswa/{siswa_id}/history', [PembayaranController::class, 'history']);
             });
         });
+        Route::prefix('wali')->middleware('role:wali')->group(function () {
+
+            Route::prefix('keuangan')->group(function () {
+                Route::get('/pembayaran/siswa/{siswa_id}/history', [PembayaranController::class, 'history']);
+            });
+
+            Route::get('/siswa/{siswa}/hafalan', [
+                HafalanController::class,
+                'index'
+            ]);
+
+            Route::get('/siswa/{siswa}/hafalan/{hafalan}', [
+                HafalanController::class,
+                'show'
+            ]);
+        });
+
     });
 
     Route::get('/siswa/search', [SiswaController::class, 'search']);

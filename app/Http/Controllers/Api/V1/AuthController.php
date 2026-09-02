@@ -16,7 +16,7 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        $user = User::with('role')
+        $user = User::with(['role', 'siswa'])
             ->where('email', $credentials['email'])
             ->first();
 
@@ -37,6 +37,17 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->role?->nama,
             ],
+            'siswa' => $user->siswa
+        ]);
+    }
+
+    public function logout(Request $request)
+    {
+        // Revoke the token that was used to authenticate the current request
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Logout berhasil.',
         ]);
     }
 }
