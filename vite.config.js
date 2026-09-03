@@ -18,5 +18,12 @@ export default defineConfig({
                 },
             },
         }),
-    ],
+    ],server: {
+        host: '0.0.0.0', 
+        port: 5173,
+        cors: true,
+        hmr: {
+            host: '172.21.113.185', // 👈 Put your host machine's EXACT local IP here
+        },
+    },
 });

@@ -78,7 +78,7 @@ const loading = ref(false)
 
 const fetchHistory = async () => {
   try {
-    const response = await api.get(`/keuangan/pembayaran/siswa/${auth.user.id}/history`)
+    const response = await api.get(`/wali/keuangan/pembayaran/siswa/${auth.user.siswa.siswa_id}/history`)
     
     historyList.value = response.data.data
     
@@ -89,6 +89,19 @@ const fetchHistory = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const formatHeaderLabel = (key) => {
+  if (!key) return ''
+  return key.replace(/_/g, ' ').toUpperCase()
+}
+
+const format = (value) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0
+  }).format(value)
 }
 
 onMounted(fetchHistory)

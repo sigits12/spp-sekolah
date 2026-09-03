@@ -28,7 +28,7 @@ class AuthController extends Controller
 
         $token = $user->createToken('api-token')->plainTextToken;
 
-        return response()->json([
+        $return = [
             'message' => 'Login berhasil.',
             'token' => $token,
             'user' => [
@@ -37,8 +37,15 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->role?->nama,
             ],
-            'siswa' => $user->siswa
-        ]);
+        ];
+
+        if ($user->role?->nama == 'wali') {
+            array_push($return['user'], ['siswa' => [
+                    'siswa_id' => $user->siswa->first()->id
+                ]]);
+        }
+
+        return response()->json($return);
     }
 
     public function logout(Request $request)
