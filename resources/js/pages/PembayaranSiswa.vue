@@ -132,8 +132,8 @@
                 class="w-32 px-2 py-1.5 bg-gray-50 border border-gray-300 rounded-md text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
               >
                 <option value="tunai">Tunai</option>
-                <option value="bri">BRI</option>
-                <option value="bsi">BSI</option>
+                <option value="bri">BRI (SD TAHFIZHUL MUTIARA ISLAM)</option>
+                <option value="bsi">BSI (Sdtq Mutiara Islam)</option>
               </select>
             </div>
 
