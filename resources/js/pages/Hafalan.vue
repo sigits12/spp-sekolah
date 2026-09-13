@@ -15,14 +15,9 @@
             <h3 class="font-semibold text-gray-800 mb-3 text-sm flex items-center">📖 Setoran Hafalan</h3>
             <div class="grid gap-2">
               <div class="flex flex-col sm:flex-row sm:items-center border border-gray-200 rounded-lg p-2 bg-white gap-2">
-                <div class="flex items-center gap-2 flex-1 min-w-0">
-                  <div class="h-9 w-9 bg-gray-100 rounded-md flex items-center justify-center text-gray-600 font-bold shrink-0">
-                    Z
-                  </div>
-                  <div class="min-w-0">
-                    <p class="font-semibold text-gray-700 truncate text-sm">Jenis Setoran</p>
-                    <p class="text-[11px] text-gray-500">Ziyadah atau murojaah</p>
-                  </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-gray-700 truncate text-sm">Jenis Setoran</p>
+                  <p class="text-[11px] text-gray-500">Ziyadah atau murojaah</p>
                 </div>
                 <select
                   v-model="form.jenis"
@@ -34,36 +29,9 @@
               </div>
 
               <div class="flex flex-col sm:flex-row sm:items-center border border-gray-200 rounded-lg p-2 bg-white gap-2">
-                <div class="flex items-center gap-2 flex-1 min-w-0">
-                  <div class="h-9 w-9 bg-gray-100 rounded-md flex items-center justify-center text-gray-600 font-bold shrink-0">
-                    J
-                  </div>
-                  <div class="min-w-0">
-                    <p class="font-semibold text-gray-700 truncate text-sm">Juz</p>
-                    <p class="text-[11px] text-gray-500">Juz 1 sampai 30</p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-1 bg-gray-50 p-2 rounded-md border border-gray-200">
-                  <input
-                    type="number"
-                    min="1"
-                    max="30"
-                    v-model.number="form.juz"
-                    class="w-12 bg-transparent text-center font-semibold text-blue-600 outline-none text-sm"
-                  />
-                  <span class="text-[10px] font-semibold text-gray-400">JUZ</span>
-                </div>
-              </div>
-
-              <div class="flex flex-col sm:flex-row sm:items-center border border-gray-200 rounded-lg p-2 bg-white gap-2">
-                <div class="flex items-center gap-2 flex-1 min-w-0">
-                  <div class="h-9 w-9 bg-gray-100 rounded-md flex items-center justify-center text-gray-600 font-bold shrink-0">
-                    S
-                  </div>
-                  <div class="min-w-0">
-                    <p class="font-semibold text-gray-700 truncate text-sm">Surah</p>
-                    <p class="text-[11px] text-gray-500">Nama surah yang disetorkan</p>
-                  </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-gray-700 truncate text-sm">Surah</p>
+                  <p class="text-[11px] text-gray-500">Nama surah yang disetorkan</p>
                 </div>
                 <input
                   v-model="form.surah"
@@ -74,14 +42,9 @@
               </div>
 
               <div class="flex flex-col sm:flex-row sm:items-center border border-gray-200 rounded-lg p-2 bg-white gap-2">
-                <div class="flex items-center gap-2 flex-1 min-w-0">
-                  <div class="h-9 w-9 bg-gray-100 rounded-md flex items-center justify-center text-gray-600 font-bold shrink-0">
-                    A
-                  </div>
-                  <div class="min-w-0">
-                    <p class="font-semibold text-gray-700 truncate text-sm">Ayat</p>
-                    <p class="text-[11px] text-gray-500">Rentang ayat setoran</p>
-                  </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-gray-700 truncate text-sm">Ayat</p>
+                  <p class="text-[11px] text-gray-500">Rentang ayat setoran</p>
                 </div>
                 <div class="flex items-center gap-2">
                   <input
@@ -97,6 +60,23 @@
                     placeholder="Sampai"
                     class="w-16 px-2 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm text-center outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                </div>
+              </div>
+
+              <div class="flex flex-col sm:flex-row sm:items-center border border-gray-200 rounded-lg p-2 bg-white gap-2">
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-gray-700 truncate text-sm">Nilai</p>
+                  <p class="text-[11px] text-gray-500">Skor setoran 0 sampai 100</p>
+                </div>
+                <div class="flex items-center gap-1 bg-gray-50 p-2 rounded-md border border-gray-200">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    v-model.number="form.nilai"
+                    class="w-14 bg-transparent text-center font-semibold text-blue-600 outline-none text-sm"
+                  />
+                  <span class="text-[10px] font-semibold text-gray-400">NILAI</span>
                 </div>
               </div>
             </div>
@@ -151,7 +131,7 @@
                 <tr>
                   <th class="px-2 py-1 font-semibold">Tanggal</th>
                   <th class="px-2 py-1 font-semibold">Jenis</th>
-                  <th class="px-2 py-1 font-semibold">Juz</th>
+                  <th class="px-2 py-1 font-semibold">Nilai</th>
                   <th class="px-2 py-1 font-semibold">Surah</th>
                   <th class="px-2 py-1 font-semibold">Ayat</th>
                   <th class="px-2 py-1 font-semibold">Catatan</th>
@@ -174,7 +154,7 @@
                       {{ item.jenis }}
                     </span>
                   </td>
-                  <td class="px-2 py-1 whitespace-nowrap">{{ item.juz }}</td>
+                  <td class="px-2 py-1 whitespace-nowrap font-semibold text-slate-800">{{ item.nilai ?? '-' }}</td>
                   <td class="px-2 py-1 whitespace-nowrap">{{ item.surah }}</td>
                   <td class="px-2 py-1 whitespace-nowrap">{{ item.ayat }}</td>
                   <td class="px-2 py-1">{{ item.catatan || '-' }}</td>
@@ -197,7 +177,7 @@
             <thead class="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th class="px-3 py-3 font-semibold text-gray-600">Siswa</th>
-                <th class="px-3 py-3 font-semibold text-gray-600 text-right">Setoran</th>
+                <th class="px-3 py-3 font-semibold text-gray-600 text-right">Nilai</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
@@ -210,7 +190,7 @@
                   <p class="text-[10px] text-gray-500">{{ item.tanggal }} • {{ item.jenis }}</p>
                 </td>
                 <td class="px-3 py-3 font-semibold text-blue-600 text-right">
-                  Juz {{ item.juz }}
+                  {{ item.nilai ?? '-' }}
                   <p class="text-[10px] font-normal text-gray-500">{{ item.surah }} {{ item.ayat }}</p>
                 </td>
               </tr>
@@ -250,7 +230,7 @@ const perPage = 8
 
 const form = ref({
   jenis: 'Ziyadah',
-  juz: 1,
+  nilai: null,
   surah: '',
   ayatDari: '',
   ayatSampai: '',
@@ -286,7 +266,7 @@ const formatAyat = () => {
 const resetForm = () => {
   form.value = {
     jenis: 'Ziyadah',
-    juz: 1,
+    nilai: null,
     surah: '',
     ayatDari: '',
     ayatSampai: '',
@@ -320,6 +300,10 @@ const simpanSetoran = () => {
     alert('Surah wajib diisi')
     return
   }
+  if (form.value.nilai === null || form.value.nilai === '' || Number.isNaN(form.value.nilai)) {
+    alert('Nilai wajib diisi')
+    return
+  }
 
   isSubmitting.value = true
   try {
@@ -329,7 +313,7 @@ const simpanSetoran = () => {
       nama: selectedSiswa.value.nama,
       kelas: selectedSiswa.value.kelas,
       jenis: form.value.jenis,
-      juz: form.value.juz || 1,
+      nilai: form.value.nilai,
       surah: form.value.surah,
       ayat: formatAyat(),
       catatan: form.value.catatan,
