@@ -30,6 +30,7 @@ import Dashboard from '../pages/Dashboard.vue'
 // import Siswa from '@/pages/Siswa.vue'
 import Tagihan from '../pages/TagihanSiswa.vue'
 import Pembayaran from '../pages/PembayaranSiswa.vue'
+import Hafalan from '../pages/Hafalan.vue'
 import Login from '../pages/Login.vue'
 // import Laporan from '@/pages/Laporan.vue'
 // import Pengaturan from '@/pages/Pengaturan.vue'
@@ -58,6 +59,11 @@ const routes = [
         path: 'tagihan',
         name: 'tagihan',
         component: Tagihan,
+      },
+      {
+        path: 'hafalan',
+        name: 'hafalan',
+        component: Hafalan,
       },
     ],
   },
