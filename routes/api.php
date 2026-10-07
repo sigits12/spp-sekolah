@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\LaporanPembayaranController;
 use App\Http\Controllers\Api\V1\SiswaController;
 use App\Http\Controllers\Api\V1\ImportController;
 use App\Http\Controllers\Api\V1\RiwayatKelasController;
+use App\Http\Controllers\Api\V1\WhatsappController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -26,6 +27,11 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('role:admin,tu')->group(function () {
+            
+            Route::get('/whatsapp-sessions', [WhatsappController::class, 'list']);
+            Route::post('/whatsapp-session', [WhatsappController::class, 'createSession']);
+            Route::get('/whatsapp-generate-qr', [WhatsappController::class, 'getQr']);
+
             Route::get('/siswa', [SiswaController::class, 'list']);
             Route::get('/siswa-index', [SiswaController::class, 'index']);
             Route::prefix('keuangan')->group(function () {

@@ -101,8 +101,8 @@
         />
 
         <RekapTable
-          title="Rekap Tahunan"
-          :items="rekap.tahunan"
+          title="Rekap Harian"
+          :items="rekap.harian"
         />
 
         <!-- <div class="bg-white p-4 rounded-lg shadow">

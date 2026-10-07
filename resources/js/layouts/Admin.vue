@@ -118,6 +118,7 @@ const menus = [
   { name: 'Tagihan', icon: '🧾', route: 'tagihan' },
   { name: 'Pembayaran', icon: '💰', route: 'pembayaran' },
   { name: 'Hafalan', icon: '📖', route: 'hafalan' },
+  { name: 'WhatsApp', icon: '⚙️', route: 'whatsapp' },
   // { name: 'Laporan', icon: '📈', route: 'laporan' },
   // { name: 'Pengaturan', icon: '⚙️', route: 'pengaturan' },
 ]

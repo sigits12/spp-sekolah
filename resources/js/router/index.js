@@ -32,6 +32,7 @@ import Tagihan from '../pages/TagihanSiswa.vue'
 import Pembayaran from '../pages/PembayaranSiswa.vue'
 import Hafalan from '../pages/Hafalan.vue'
 import Login from '../pages/Login.vue'
+import Whatsapp from '../pages/Whatsapp.vue'
 // import Laporan from '@/pages/Laporan.vue'
 // import Pengaturan from '@/pages/Pengaturan.vue'
 
@@ -64,6 +65,11 @@ const routes = [
         path: 'hafalan',
         name: 'hafalan',
         component: Hafalan,
+      },
+      {
+        path: 'whatsapp',
+        name: 'whatsapp',
+        component: Whatsapp,
       },
     ],
   },
