@@ -408,10 +408,10 @@ class PembayaranController extends Controller
     public function history($siswa_id)
     {
         $payments = Pembayaran::with(['siswa'])
-            ->whereHas('pembayaranDetail.tagihan', function ($q) {
+            ->where('siswa_id', $siswa_id)
+            ->withWhereHas('pembayaranDetail.tagihan', function ($q) {
                 $q->where('tahun_ajaran_id', 2);
             })
-            ->where('siswa_id', $siswa_id)
             ->orderBy('id', 'desc')
             ->paginate(10);
         
